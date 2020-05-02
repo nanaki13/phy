@@ -1,0 +1,22 @@
+.in{
+
+    position:relative;
+    top:0;
+    z-index:10;
+    color:white;
+    width: auto;
+}
+body{
+color:white
+}
+span,div{
+
+    top:0;
+   z-index:10;
+}
+#main{
+ position:relative;
+    top:0;
+    z-index:10;
+    color:white;
+}
