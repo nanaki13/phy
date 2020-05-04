@@ -1,6 +1,7 @@
 package bon.jo.phy.view
 
-import bon.jo.phy.Phy.{A, P, PointDynamicImpl, V}
+import bon.jo.phy.Phy.{A, P, V}
+import bon.jo.phy.PointDynamicImpl
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 

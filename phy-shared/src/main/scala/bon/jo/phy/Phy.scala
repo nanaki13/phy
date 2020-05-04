@@ -1,16 +1,17 @@
 package bon.jo.phy
 
-import bon.jo.phy.Phy.{A, P, PointDynamic, PointDynamicImpl, V, XYT}
-
 object Phy {
    trait _XYT{
      def x : Double
      def y : Double
      def t : Double
+
+     def to[Other <: XYT[_]]( implicit   fact: Fact[Other])=fact(x,y)
    }
    abstract class XYT[Self <: XYT[_]]( implicit val  fact: Fact[Self]) extends _XYT {
 
 
+    def unitary : Self = this/this.n
 
      def * (othher : XYT[_]) : Double = {
         this.x+othher.x + this.y*othher.y
@@ -25,7 +26,7 @@ object Phy {
      def rotate90: Self = {
        fact.create(-y, x )
      }
-    def +(other : XYT[Self]) : Self = {
+    def +(other : XYT[_]) : Self = {
       fact.create(x + other.x, y + other.y)
     }
      def *(other : Double) : Self = {
@@ -34,7 +35,7 @@ object Phy {
      def /(other : Double) : Self = {
        fact.create(x / other, y /other)
      }
-    def -(other : XYT[Self]): Self = {
+    def -(other : XYT[_]): Self = {
       fact.create(x - other.x, y - other.y)
     }
      def carre: Self = fact.create(x *x, y *y)
@@ -55,13 +56,13 @@ object Phy {
      }
      def r(other : XYT[Self]): Double ={
        val nn = n2(other)
-        Math.sqrt(nn.x + nn.y).toFloat
+        Math.sqrt(nn.x + nn.y)
 
      }
-     def dx(other : XYT[Self]): Double ={
+     def dx(other : XYT[_]): Double ={
        this.x - other.x
      }
-     def dy(other : XYT[Self]): Double ={
+     def dy(other : XYT[_]): Double ={
        this.y - other.y
      }
 
@@ -69,6 +70,7 @@ object Phy {
 
   trait Fact[XYZ]{
     def create(x : Double,y : Double): XYZ
+    def  apply(x : Double,y : Double): XYZ = create(x,y)
   }
   implicit val  pfact: Fact[P] =  P(_,_)
   implicit val  vfact: Fact[V] =  V(_,_)
@@ -101,38 +103,17 @@ object Phy {
   }
 
   implicit val  pdfact: Fact[PointDynamic] = (a,b)=>PointDynamicImpl( P(a,b),m=1 )
-  trait PointDynamic{
-    var m: Double
 
-    var p : P
-    var v : V
-    var a : A
-    def addDt(t : Double): Unit
-    def x: Double = p.x
-
-    def y: Double = p.y
-
-    def t: Double = p.t
-  }
-  case class PointDynamicImpl(p_ : P,var v : V = V(),var a : A= A(),var m:Double) extends PointDynamic{
-    private var _p : P = p_
-    def p : P = _p
-    def p_=(par : P): Unit = _p = par
-    def addDt(t : Double): Unit ={
-      val newV =  (a sum t) + v
-      val newP = (newV sum t) + p
-      v = newV
-      _p = newP
-
+  implicit class ToXY( val d : Double){
+    def *[XY <: XYT[_]](xy : XY)(implicit f : Fact[XY]): XY ={
+      f(d*xy.x,d*xy.y)
     }
 
-
   }
+
 }
 
-trait dt[_XY <: XYT[_]]{
-  _ : XYT[_] =>
-  def sum(t : Double):_XY
-}
+
+
 
 

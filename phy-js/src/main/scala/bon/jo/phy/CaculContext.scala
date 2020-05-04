@@ -1,6 +1,6 @@
 package bon.jo.phy
 
-import bon.jo.phy.Phy.{A, PointDynamic}
+import bon.jo.phy.Phy.A
 
 case class CaculContext(var point: PointDynamic = null,
                         var pointToSun: A = null,

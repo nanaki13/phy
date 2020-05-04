@@ -1,13 +1,10 @@
 package bon.jo.phy
 
-import bon.jo.phy.Phy.PointDynamic
-import bon.jo.phy.view.PointDynamicColor
-import bon.jo.phy.view.Shape.Circle
-
-trait CalculParam {
+trait CalculParam extends Param
+trait Param {
   def forSun(doThat :  PointDynamic => Unit): Unit = sun foreach doThat
 
-
+  var G :Double
   var soleilMasse: Double
   var kRessort: Double
   var speedFactor: Double
@@ -17,15 +14,14 @@ trait CalculParam {
 
   def rSup = Math.sqrt(Math.sqrt(soleilMasse)) * 1000
 
-  def rInf = Math.sqrt(Math.sqrt(soleilMasse)) / 10
+  def rInf = Math.sqrt(soleilMasse)
 
   var interaction: Interaction
   var correction: Boolean
   var sun: Option[PointDynamic]
 }
-
 object CalculParam {
-  def apply(e: CalculParam):CalculParam = {
+  def apply(e: Param):CalculParam = {
     CalcuParamImpl(
       e.soleilMasse,
       e.kRessort,
@@ -34,7 +30,7 @@ object CalculParam {
       e.frt,
       e.interaction,
       e.correction,
-      e.sun: Option[PointDynamic]
+      e.sun: Option[PointDynamic],e.G
     )
   }
 }

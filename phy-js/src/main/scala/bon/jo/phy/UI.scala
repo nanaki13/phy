@@ -1,37 +1,61 @@
 package bon.jo.phy
 
-import bon.jo.html.DomShell.{$, Obs,ExtendedElement}
+import bon.jo.html.DomShell.{$, ExtendedElement, Obs}
+import bon.jo.html.Types.FinalComponent
 import bon.jo.html.{DomShell, InDom, XmlHtmlView}
 import bon.jo.phy.Phy.{A, P, V}
-
+import bon.jo.phy.view.DrawerJS._
+import bon.jo.phy.view.PointDynamicColor
 import bon.jo.phy.view.Shape.Circle
-import org.scalajs.dom.CanvasRenderingContext2D
+import org.scalajs.dom.{CanvasRenderingContext2D, Event}
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html.{Canvas, Div}
-import org.scalajs.dom.raw.KeyboardEvent
-
-import scala.xml.Node
+import org.scalajs.dom.raw.{HTMLElement, HTMLOptionElement, KeyboardEvent}
+import org.scalajs.dom.html.Select
+import org.scalajs.dom.html.{Option => OptHtml}
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.xml.{Elem, Group, Node}
 
 case class UI()(implicit uIParams: UIParams) {
 
+  var camera  = PointDynamicImpl(P(uIParams.width/2,uIParams.height/2),V(),A(),0)
+  def follow(value: PointDynamicColor[Circle])(implicit ctx: CanvasRenderingContext2D,eventContext: EventContext): Unit = {
+   scalajs.js.special.debugger()
+    camera = value
+    goTo(camera.p)
+  }
+
+
   import uIParams._
 
+  var viewPort: ViewPort = ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale))
 
+  def clear(implicit ctx: CanvasRenderingContext2D) = {
 
-  def initView()(implicit ctx: CanvasRenderingContext2D): EventContext = {
+    ctx.fillStyle = maskColor
+    ctx.fillRect(viewPort.leftBottm.x, viewPort.leftBottm.y, viewPort.w.x, viewPort.h.y)
+    ctx.strokeStyle = "black"
+    ctx.strokeRect(viewPort.leftBottm.x, viewPort.leftBottm.y, (viewPort.w.x - 5), (viewPort.h.y - 5))
+  }
+
+  def drawSun(implicit ctx: CanvasRenderingContext2D, sizeFactor: Double) = {
+    sunCircle foreach (e => e.draw)
+  }
+
+  def initView()(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext): EventContext = {
     addHtmlAndEvent
   }
 
-  def goTo(p: P)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext): Unit = {
+  def goTo(dest: P)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext, eventsHandler: EventContext): Unit = {
 
-    sun.foreach(e => {
-      val p = P(e.p.x - minViewX - (width / 2) / scale,
-        e.p.y - minViewY - (height / 2) / scale)
-      ctx.translate(-p.x, -p.y)
-      minViewX = minViewX + p.x
-      minViewY = minViewY + p.y
-      eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
-    })
+    val current = P(minViewX + (width / 2) / scale, minViewY + (height / 2) / scale)
+    val p = dest - current
+    ctx.translate(-p.x, -p.y)
+    minViewX = minViewX + p.x
+    minViewY = minViewY + p.y
+    eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+
   }
 
   def getCtx2D(implicit eventContext: EventContext): CanvasRenderingContext2D = {
@@ -45,36 +69,38 @@ case class UI()(implicit uIParams: UIParams) {
     ct
   }
 
-  def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D): EventContext = {
+  def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext): EventContext = {
 
-     def apply[A](): DomShell.Obs[A] = Obs.once[A]()
-    implicit val e : ()=>Obs[String] = apply _
-    org.scalajs.dom.document.body.appendChild(root.html())
-    mainBag.me.appendChild(bagName("temps * ", timeup.xml()).html())
-    mainBag.me.appendChild(keepTail.html())
-    mainBag.me.appendChild(bagName("vitesse planéte * ", speedUp.xml()).html())
-    mainBag.me.appendChild(comeBack.html())
-    mainBag.me.appendChild(partirBack.html())
-    mainBag.me.appendChild(turnAroond.html())
-    mainBag.me.appendChild(bagName("masse du soliel : ", masseSoleilInput.xml()).html())
-    mainBag.me.appendChild(bagName("interaction:", interactionType.xml()).html())
-    mainBag.me.appendChild(bagName("frotement:", frtOptionIn.xml()).html())
+    def apply[A](): DomShell.Obs[A] = Obs.once[A]()
+
+    implicit val e: () => Obs[String] = apply _
+
+    mainBag.cellByRaw = 5
+    mainBag.addCell(bagName("temps * ", timeup.xml()))
+    mainBag.addCell(keepTail.xml())
+    mainBag.addCell(bagName("vitesse planéte * ", speedUp.xml()))
+    mainBag.addCell(comeBack.xml())
+    mainBag.addCell(partirBack.xml())
+    mainBag.addCell(turnAroond.xml())
+    mainBag.addCell(bagName("masse du soliel : ", masseSoleilInput.xml()))
+    mainBag.addCell(bagName("interaction:", interactionType.xml()))
+    mainBag.addCell(bagName("frotement:", frtOptionIn.xml()))
 
     val correctionBag = bagName("correction:", correctionInput.xml())
-    mainBag.me.appendChild(correctionBag.html())
-
+    mainBag.addCell(correctionBag)
+    val cIdom = InDom[Div](correctionBag)
     var b = bagName("taille:", sizeFactorInput.xml())
-    mainBag.me.appendChild(b.html())
+    mainBag.addCell(b)
 
     b = bagName("masse variation:", vMas.xml())
-    mainBag.me.appendChild(b.html())
-    stabilise.init(mainBag.me)
-    toSun.init(mainBag.me)
-    replacer.init(mainBag.me)
+    mainBag.addCell(b)
+    mainBag.addCell(stabilise.xml())
+    mainBag.addCell(toSun.xml())
+    mainBag.addCell(replacer.xml())
+    mainBag.addCell(chiocePlanete.xml())
 
 
-    val eventsHandler: EventContext = new EventContext
-
+    org.scalajs.dom.document.body.appendChild(root.html())
     val unserInput = masseSoleilInput.me.UserCanUpdate()
     unserInput.suscribe(e => {
       eventsHandler.masseSolei.newValue(e.toDouble)
@@ -112,7 +138,7 @@ case class UI()(implicit uIParams: UIParams) {
     toSun.me.clkOnce().suscribe(e => {
       //gotTo
       sunCircle.foreach(s => {
-        eventsHandler.action.newValue(ActionPointDynamic[Circle](s, Purpose.Move))
+        eventsHandler.actionPoint.newValue(ActionPoint(s.p, Purpose.Move))
       })
     })
     speedUp.me.UserCanUpdate().suscribe(e => {
@@ -130,9 +156,9 @@ case class UI()(implicit uIParams: UIParams) {
       //   centreG.p.map(_.p).foreach(turnAroundSun)
     })
     interactionType.me.clkOnce().suscribe(e => {
-      switchIneraction = switchIneraction.swap
-      interaction = switchIneraction._1
-      interactionType.me.innerText =interaction.name
+      switchIneraction = switchIneraction.tail :+ switchIneraction.head
+      interaction = switchIneraction.head
+      interactionType.me.innerText = interaction.name
       eventsHandler.ineraction.newValue(interaction)
     })
 
@@ -142,7 +168,7 @@ case class UI()(implicit uIParams: UIParams) {
     })
 
 
-    correctionBag.me.clkOnce().suscribe(e => {
+    cIdom.me.clkOnce().suscribe(e => {
       correction = !correction
       correctionInput.me.innerText = if (correction) "Oui" else "Non"
       eventsHandler.correction.newValue(correction)
@@ -151,11 +177,43 @@ case class UI()(implicit uIParams: UIParams) {
       eventsHandler.replaceAround.newValue(())
 
     })
+    ref.addEventListener[Event]("change", e => {
+      eventsHandler.userChoicePlanete.newValue(e.target.asInstanceOf[Select].value.toInt)
+    })
+    trait ObsViewUpdateText[E] {
+      val obs: Obs[E]
+      val htmlCp: InDom[Div]
+
+      def text(e: E): String
+
+      def link() = obs.suscribe(e => {
+        htmlCp.me.innerText = text(e)
+      })
+    }
+    object ObsViewUpdateText {
+      def apply[E](obsp: Obs[E], htmlCpp: InDom[Div], textF: E => String): ObsViewUpdateText[E] = {
+        new ObsViewUpdateText[E]() {
+          override val obs: Obs[E] = obsp
+          override val htmlCp: InDom[Div] = htmlCpp
+
+          override def text(e: E): String = textF(e)
+        }
+      }
+    }
+    var stabiliseV = false
     stabilise.me.clkOnce().suscribe(e => {
-      eventsHandler.stabilise.newValue(())
+      if (!stabiliseV) {
+        stabiliseV = true
+        eventsHandler.stabilise.newValue((stabiliseV))
+      }
+
     })
 
-
+    ObsViewUpdateText.apply(eventsHandler.stabilise, stabilise, (b: Boolean) => {
+      stabiliseV = b
+      "Stabilise" + (if (b) "Oui" else "Non")
+    }).link()
+    eventsHandler.stabilise.newValue(false)
     canvas.me.clkOnce().suscribe(e => {
       val rect = canvas.me.getBoundingClientRect()
       val xc = rect.left
@@ -177,21 +235,42 @@ case class UI()(implicit uIParams: UIParams) {
       sunCircle = Some(
         new PointDynamicColorImpl(soleilMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f))
       )
+
       eventsHandler.action.newValue(ActionPointDynamic(sunCircle.get, Purpose.PutSun))
 
     })
+
+    eventsHandler.planeteAdded.suscribe {
+      addForChoice
+    }
     eventsHandler
+  }
+
+  lazy val chiocePlanete = InDom[Div] (
+    <div id="planeteChoice">
+      <select id="pl">
+
+      </select>
+
+    </div>)
+
+  lazy val ref = $[Select]("pl")
+  def addForChoice(i : Int): Unit = {
+    val opt = InDom[OptHtml]( <option value={i.toString}>{i.toString}</option>)
+    ref.appendChild(opt.html())
   }
 
   def dw(implicit uIParams: UIParams) = (-uIParams.width / 4d)
 
   def dh(implicit uIParams: UIParams) = (-uIParams.height / 4d)
+
   def hadleKeyB(e: KeyboardEvent)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext, uIParams: UIParams) = {
 
 
     import uIParams._
     val keysMapProcess = Map(
       "+" -> (() => {
+
         ctx.translate((width / 2) * scale, (height / 2) * scale)
         minViewX -= (width / 2) * scale
         minViewY -= (height / 2) * scale
@@ -202,7 +281,7 @@ case class UI()(implicit uIParams: UIParams) {
         ctx.translate(-(width / 2) * scale, -(height / 2) * scale)
         minViewX += (width / 2) * scale
         minViewY += (height / 2) * scale
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
+        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
 
       }), "-" -> (() => {
 
@@ -217,28 +296,28 @@ case class UI()(implicit uIParams: UIParams) {
         minViewY += (height / 2) * scale
         ctx.scale(0.9, 0.9)
         ctx.translate(-(width / 2) * scale, -(height / 2) * scale)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
+        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
 
       }), "d" -> (() => {
         val v = dw
         minViewX += v
         ctx.translate(-v, 0)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
+        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "q" -> (() => {
         val v = dw
         minViewX -= v
         ctx.translate(v, 0)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
+        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "z" -> (() => {
         val v = dh
         minViewY += v
         ctx.translate(0, -v)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
+        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "s" -> (() => {
         val v = dh
         minViewY -= v
         ctx.translate(0, v)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width * scale), V(height * scale)))
+        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "p" -> (() => {
         sizeFactor *= 1.1
         eventContext.sizeFactor.newValue(sizeFactor)
@@ -249,23 +328,17 @@ case class UI()(implicit uIParams: UIParams) {
     )
 
     keysMapProcess.get(e.key).map(e => {
+      clear
       e()
       true
     }).foreach(_ => {
 
-      ctx.save()
-      ctx.setTransform(1, 0, 0, -1, 1, 1)
-      ctx.fillStyle = maskColor
-      val x = -2 * width
-      val y = -2 * height
-      val w = 4 * width
-      val h = 4 * height
-      ctx.fillRect(x, y, w, h)
-      ctx.strokeStyle = "black"
-      ctx.strokeRect(x, y, w, h)
-      ctx.restore()
+      clear
     })
-
+    eventContext.viewPort.suscribe(v => {
+      CircleDraw.drawFill(Circle(50), v.leftBottm + P(v.w.x / 2, v.h.y / 2))(ctx, 1)
+      this.viewPort = v
+    })
 
   }
 
@@ -317,7 +390,7 @@ case class UI()(implicit uIParams: UIParams) {
 
   lazy val interactionType = InDom[Div]({
     <div id="inter" class="btn in">
-      {switchIneraction._1.name}
+      {switchIneraction.head.name}
     </div>
   })
   lazy val frtOptionIn = InDom[Div]({
@@ -330,7 +403,7 @@ case class UI()(implicit uIParams: UIParams) {
   })
 
   lazy val vMas = InDom[Div]({
-    <div id="vMasse">
+    <div id="vMasse" class="d-inline">
       <div id="pMasse" class="btn in">
         +
       </div>
@@ -352,16 +425,46 @@ case class UI()(implicit uIParams: UIParams) {
     </div>
   })
 
-  def bagName(name: String, node: Node) = InDom[Div]({
+  def bagName(name: String, node: Node) = {
     <div class="col d-inline" id={name + "-id"}>
       <span>
         {name}
       </span>{node}
     </div>
-  })
+  }
 
-  val mainBag = InDom[Div](<div id="main row"></div>)
-  val root = InDom[Div](<div id="root" class="container-fluid">
+  object mainBag extends FinalComponent[Div] {
+    var cellByRaw = 5
+    var current = 1
+
+    def addCell(n: Node): Unit = {
+      table.head += n
+      current += 1
+      if (current > cellByRaw) {
+        current = 1
+        table = ListBuffer[Node]() :: table
+      }
+    }
+
+    var table: List[mutable.ListBuffer[Node]] = ListBuffer[Node]() :: Nil
+
+    override def xml(): Node = {
+      val rows: List[Elem] = for {r <- table.reverse} yield {
+        <div class="row">
+          {Group(r)}{r.size}
+        </div>
+      }
+      <div id={id}>
+        {Group(rows)}
+      </div>
+    }
+
+    override def id: String = "gr"
+
+    override def init(parent: HTMLElement): Unit = {}
+  }
+
+  def root: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="root" class="container-fluid">
     <div class="container">
       {mainBag.xml()}
     </div>
