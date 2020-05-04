@@ -5,10 +5,16 @@ import bon.jo.phy.Phy.{A, P, V}
 trait PointDynamic{
   var m: Double
 
+
   var p : P
   var v : V
   var a : A
-  def addDt(t : Double): Unit
+  def addDt(t : Double): Unit ={
+    val newV =  (a sum t) + v
+    val newP = (newV sum t) + p
+    v = newV
+    p = newP
+  }
   def x: Double = p.x
 
   def y: Double = p.y

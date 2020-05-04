@@ -1,4 +1,4 @@
-package bon.jo.phy
+package bon.jo.phy.view
 
 import bon.jo.phy.Phy.{P, V}
 

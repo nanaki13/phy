@@ -1,10 +1,9 @@
 package bon.jo.phy
 
-import bon.jo.phy.MainGalaxy.Model
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.view.DrawerJS._
 import bon.jo.phy.view.Shape.Circle
-import bon.jo.phy.view.{DrawerJS, PointDynamicColor}
+import bon.jo.phy.view.{Drawer, DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 
@@ -31,7 +30,7 @@ object MainGalaxy extends App {
     ctx.stroke()
   }
 
-  case class Model(var rds: List[PointDynamicColor[Circle]])
+
 
 
   private var t = 0
@@ -44,24 +43,21 @@ object MainGalaxy extends App {
   }
 
 
-  def drawFirst()(implicit ctx: CanvasRenderingContext2D, uIParams: UIParams): Unit = {
+  def drawFirst()(implicit ctx: CanvasRenderingContext2D, uIParams: UIParams,model: Model[_]): Unit = {
     import uIParams._
     implicit val s: Double = sizeFactor
-    (new PointDynamicColorImpl(1d, P(minViewX, minViewY), c = Color.Black, shape = Circle(20))).draw
-    uIParams.forSun { soleilEl => {
-      soleilEl.asInstanceOf[PointDynamicColor[Circle]].draw
-      ctx.strokeStyle = "red"
-      DrawerJS.CircleDraw.drawStrike(Circle(uIParams.rSup), soleilEl.p)(ctx, 1)
-      ctx.strokeStyle = "green"
-      DrawerJS.CircleDraw.drawStrike(Circle(uIParams.rInf), soleilEl.p)(ctx, 1)
-      (new PointDynamicColorImpl(1d, P(minViewX, minViewY), c = Color.Black, shape = Circle(20))).draw
-    }
+    implicit val a: Drawer[CanvasRenderingContext2D, Shape] = DrawerJS.Gen.ShapeDraw
+    model.interactions.foreach{ soleilEl =>
+     val centreForce: PointDynamicColor[Shape] =  soleilEl._1.asInstanceOf[PointDynamicColor[Shape]]
+      ctx.fillStyle = uIParams.maskColor
+      centreForce.mask
+      centreForce.draw
     }
   }
 
 
   def calculAndDraw(calculParam: CalculParam)(implicit ctx: CanvasRenderingContext2D
-                                              , calculateur: Calculateur
+                                              , calculateur: Calculateur[PointDynamicColorCircle]
                                               , uiParam: UIParams
                                               , UI: UI
   ,eventContext: EventContext): Unit = {
@@ -72,18 +68,20 @@ object MainGalaxy extends App {
     val dtt = sgn * dt
     val intPos = sgn * calculParam.scleTime.toInt
     val pCam = UI.camera.p
+    calculParam.dt =dtt
     calculateur.model.rds.foreach(e => {
       if (!uiParam.tracer) {
         ctx.fillStyle = uiParam.maskColor
         e.mask
       }
 
-      calculParam.forSun(s =>
+
         for (_ <- 0 until intPos) {
-          calculateur.calculnext(e, s, calculParam)
-          e.addDt(dtt)
+
+          calculateur.calculnextPosition(e, calculParam)
+
         }
-      )
+
 
 
       tmp.foreach(e => e.foreach(draw _ tupled _))
@@ -109,26 +107,41 @@ object MainGalaxy extends App {
 
   }
 
-  def linkAction(calculParam: CalculParam)(implicit calculateur: Calculateur, ui: UI, uIParams: UIParams, ctx: CanvasRenderingContext2D, eventContext: EventContext) = {
+  def stopCamera(oldCamera : PointDynamic) = PointDynamicImpl(oldCamera.p.copy(),V(),A(),0)
+
+  def linkAction(calculParam: CalculParam)(implicit calculateur: Calculateur[PointDynamicColorCircle],
+                                           ui: UI,
+                                           uIParams: UIParams,
+                                           ctx: CanvasRenderingContext2D,
+                                           eventContext: EventContext, model: Model[PointDynamicColorCircle]) = {
     implicit val s = uIParams.sizeFactor
     eventContext.action.suscribe(action => {
       action.what match {
         case Purpose.PutSun => calculParam.sun = {
+
           action.p match {
-            case impl: PointDynamicColorImpl => impl.draw
+            case impl: PointDynamicColorCircle => {
+              model.interactions =  (impl,calculParam.interaction) :: Nil
+              impl.draw
+            }
             case _ =>
           }
-          Some(action.p);
+          Some(action.p.asInstanceOf[PointDynamicColorCircle]);
         }
         case Purpose.PlanetTarget =>
         case Purpose.Move =>
+        case _ =>
       }
     })
     eventContext.actionPoint.suscribe(action => {
       action.what match {
         case Purpose.PutSun =>
         case Purpose.PlanetTarget =>
-        case Purpose.Move => ui.goTo(action.p); ui.camera = PointDynamicImpl(action.p)
+        case Purpose.Move => {
+          selectedIndex = -1
+          ui.goTo(action.p); ui.camera = PointDynamicImpl(action.p)
+        }
+        case _ =>
       }
     })
     eventContext.speedFactor.suscribe(calculateur.applyV)
@@ -138,14 +151,39 @@ object MainGalaxy extends App {
     eventContext.viewPort.suscribe(viewPort = _)
     eventContext.replaceAround.suscribe(e => {
       ui.clear
-      calculateur.replaceAround(viewPort.w.x/4, 0, calculParam)
+      calculateur.replaceAround(model.interactions.head._1.p,viewPort.w.x/4, 0, calculParam)
     })
     eventContext.userChoicePlanete.suscribe(e => {
-      ui.follow( calculateur.model.rds(e))
+      ui.clear
+      selectedIndex = e
+      ui.follow( model.rds(e))
     })
+    eventContext.clean.suscribe(_=> ui.clear)
+
+    eventContext.userWant.suscribe {
+      case Purpose.PutSun =>
+      case Purpose.PlanetTarget =>
+      case Purpose.Move =>
+      case Purpose.Delete => if (selectedIndex != -1) {
+        ctx.fillStyle = uIParams.maskColor
+        model.rds.zipWithIndex.find(_._2 == selectedIndex).get._1.mask
+        ui.camera = stopCamera(ui.camera)
+        println(model.rds.size)
+        model.rds = model.rds.zipWithIndex.filter(_._2 != selectedIndex).map(_._1)
+        println(model.rds.size)
+        eventContext.planeteRemove.newValue(selectedIndex)
+        selectedIndex = -1
+      }
+      case Purpose.Create => {
+        model.rds = model.rds :+ rdPointDynamic
+        eventContext.planeteAdded.newValue(model.rds.size - 1)
+      }
+      case _ =>
+    }
     eventContext
   }
 
+  var selectedIndex = -1
   var viewPort: ViewPort = _
 
 
@@ -160,9 +198,10 @@ object MainGalaxy extends App {
     ctx.transform(1, 0, 0, -1, 1, 1)
     ctx.translate(0, -uiParams.height)
 
-    implicit val m = Model(Nil)
+    implicit val m: Model[PointDynamicColorCircle] = Model[PointDynamicColorCircle](Nil,Nil)
     implicit val calculParam: CalculParam = CalculParam(uiParams)
-    implicit val calcul: Calculateur = Calculateur(m)
+
+    implicit val calcul: Calculateur[PointDynamicColorCircle] = Calculateur(m)
     linkParam(calculParam)
     linkAction(calculParam)
     eventContext.viewPort.newValue(ui.viewPort)
@@ -175,11 +214,13 @@ object MainGalaxy extends App {
       if(calcul.haveToStab){
         eventContext.stabilise.newValue(false)
       }
-      if (m.rds.length < 20) {
+      if (m.rds.length < 20 && initPhase) {
         if (Random.nextDouble() > 0.85) {
           m.rds = m.rds :+ rdPointDynamic
           eventContext.planeteAdded.newValue( m.rds.size -1)
         }
+      }else{
+        initPhase = false
       }
 
     })
@@ -190,7 +231,7 @@ object MainGalaxy extends App {
   def rdInt(e: Int) = Random.nextInt(e)
 
 
-  def rdPointDynamic(implicit uIParams: UIParams): PointDynamicColor[Circle] = {
+  def rdPointDynamic(implicit uIParams: UIParams): PointDynamicColorCircle = {
     val px = Random.nextInt(uIParams.width)
 
     val py = Random.nextInt(uIParams.height)
@@ -199,15 +240,16 @@ object MainGalaxy extends App {
     // val vy = 0
     //    val vx = 0
     val m = 700 + 600 * Random.nextDouble()
-    new PointDynamicColorImpl(m, P(px, py), V(vx, vy), A(), Color(rdInt(255), rdInt(255), rdInt(255)), Circle(m * 0.01))
+    new PointDynamicColorCircle(m, P(px, py), V(vx, vy), A(), Color(rdInt(255), rdInt(255), rdInt(255)), Circle(m * 0.01))
   }
 
 
   go()
 }
 
-class PointDynamicColorImpl(m: Double, pIni: P, vIni: V = V(), aIni: A = A(), c: Color, shape: Circle) extends PointDynamicColor[Circle](m, pIni, vIni, aIni, c, shape) {
+class PointDynamicColorCircle(m: Double, pIni: P, vIni: V = V(), aIni: A = A(), c: Color, shape: Circle) extends PointDynamicColor[Circle](m, pIni, vIni, aIni, c, shape) {
   override def mask(implicit tx: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
+
     drawFill[Circle](this.shape * 1.2F, p)
   }
 }

@@ -1,7 +1,7 @@
-package bon.jo.phy
+package bon.jo.phy.view
 
-import bon.jo.phy.view.PointDynamicColor
 import bon.jo.phy.view.Shape.Circle
+import bon.jo.phy.{Interaction, Param, PointDynamic}
 
 case class UIParams(
 

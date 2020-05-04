@@ -1,10 +1,17 @@
 package bon.jo.phy
 
-import bon.jo.phy.Phy.{A, Fact, ToXY, V, XYT,pfact,vfact,afact}
+import bon.jo.phy.Phy.A
 
 
 abstract sealed case class Interaction(name: String) {
-
+  def fillContext(on: PointDynamic,sourceInteraction: PointDynamic, caculContext: CaculContext): Unit = {
+    val soleil = sourceInteraction.p
+    val dir = soleil - on.p
+    caculContext.point = on
+    caculContext.distCarre = dir.n2
+    caculContext.dist = Math.sqrt( caculContext.distCarre)
+    caculContext.pointToSun = new A(dir /  caculContext.dist)
+  }
 
 
   def calculA(implicit ctx: CaculContext, e: CalculParam): A
@@ -33,7 +40,7 @@ abstract sealed case class Interaction(name: String) {
 
 
 
-  def resultatA(implicit ctx: CaculContext, e: CalculParam): A = {
+  def resultatForace(implicit ctx: CaculContext, e: CalculParam): A = {
     //  if (ctx.dist > e.rInf) {
     val a = correction((calculA))
     if (e.frt != 0d) {

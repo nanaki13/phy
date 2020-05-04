@@ -1,11 +1,13 @@
 package bon.jo.phy
 
-import bon.jo.html.DomShell.{$, ExtendedElement, Obs}
+import bon.jo.Logger
+import bon.jo.html.DomShell.{$, ExtendedElement}
 import bon.jo.html.Types.FinalComponent
 import bon.jo.html.{DomShell, InDom, XmlHtmlView}
 import bon.jo.phy.Phy.{A, P, V}
+import bon.jo.phy.Purpose.Delete
 import bon.jo.phy.view.DrawerJS._
-import bon.jo.phy.view.PointDynamicColor
+import bon.jo.phy.view.{PointDynamicColor, Shape, UIParams, ViewPort}
 import bon.jo.phy.view.Shape.Circle
 import org.scalajs.dom.{CanvasRenderingContext2D, Event}
 import org.scalajs.dom.ext.Color
@@ -13,6 +15,7 @@ import org.scalajs.dom.html.{Canvas, Div}
 import org.scalajs.dom.raw.{HTMLElement, HTMLOptionElement, KeyboardEvent}
 import org.scalajs.dom.html.Select
 import org.scalajs.dom.html.{Option => OptHtml}
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.xml.{Elem, Group, Node}
@@ -20,7 +23,7 @@ import scala.xml.{Elem, Group, Node}
 case class UI()(implicit uIParams: UIParams) {
 
   var camera  = PointDynamicImpl(P(uIParams.width/2,uIParams.height/2),V(),A(),0)
-  def follow(value: PointDynamicColor[Circle])(implicit ctx: CanvasRenderingContext2D,eventContext: EventContext): Unit = {
+  def follow(value: PointDynamicColor[_ <: Shape])(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext): Unit = {
    scalajs.js.special.debugger()
     camera = value
     goTo(camera.p)
@@ -29,7 +32,7 @@ case class UI()(implicit uIParams: UIParams) {
 
   import uIParams._
 
-  var viewPort: ViewPort = ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale))
+  var viewPort: ViewPort = view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale))
 
   def clear(implicit ctx: CanvasRenderingContext2D) = {
 
@@ -54,7 +57,7 @@ case class UI()(implicit uIParams: UIParams) {
     ctx.translate(-p.x, -p.y)
     minViewX = minViewX + p.x
     minViewY = minViewY + p.y
-    eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+    eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
 
   }
 
@@ -71,7 +74,7 @@ case class UI()(implicit uIParams: UIParams) {
 
   def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext): EventContext = {
 
-    def apply[A](): DomShell.Obs[A] = Obs.once[A]()
+    def apply[A](): Obs[A] = Obs.once[A]()
 
     implicit val e: () => Obs[String] = apply _
 
@@ -81,7 +84,7 @@ case class UI()(implicit uIParams: UIParams) {
     mainBag.addCell(bagName("vitesse planéte * ", speedUp.xml()))
     mainBag.addCell(comeBack.xml())
     mainBag.addCell(partirBack.xml())
-    mainBag.addCell(turnAroond.xml())
+    mainBag.addCell(effacer.xml())
     mainBag.addCell(bagName("masse du soliel : ", masseSoleilInput.xml()))
     mainBag.addCell(bagName("interaction:", interactionType.xml()))
     mainBag.addCell(bagName("frotement:", frtOptionIn.xml()))
@@ -97,9 +100,11 @@ case class UI()(implicit uIParams: UIParams) {
     mainBag.addCell(stabilise.xml())
     mainBag.addCell(toSun.xml())
     mainBag.addCell(replacer.xml())
-    mainBag.addCell(chiocePlanete.xml())
+    b = bagName("Planètes :", chiocePlanete.xml())
+    mainBag.addCell(b)
 
-
+    b = bagName("Action :", planeteAction.xml())
+    mainBag.addCell(b)
     org.scalajs.dom.document.body.appendChild(root.html())
     val unserInput = masseSoleilInput.me.UserCanUpdate()
     unserInput.suscribe(e => {
@@ -151,8 +156,8 @@ case class UI()(implicit uIParams: UIParams) {
     partirBack.me.clkOnce().suscribe(e => {
       eventsHandler.pushPull.newValue(true)
     })
-    turnAroond.me.clkOnce().suscribe(e => {
-      eventsHandler.turnAround.newValue(())
+    effacer.me.clkOnce().suscribe(e => {
+      eventsHandler.clean.newValue(())
       //   centreG.p.map(_.p).foreach(turnAroundSun)
     })
     interactionType.me.clkOnce().suscribe(e => {
@@ -177,9 +182,20 @@ case class UI()(implicit uIParams: UIParams) {
       eventsHandler.replaceAround.newValue(())
 
     })
-    ref.addEventListener[Event]("change", e => {
+    plneteSelection.addEventListener[Event]("change", e => {
       eventsHandler.userChoicePlanete.newValue(e.target.asInstanceOf[Select].value.toInt)
     })
+
+
+    var selectedPurpose : Purpose = Delete
+    planeteActionRef.addEventListener[Event]("change", e => {
+      Logger.log(planeteActionRef.value)
+      selectedPurpose = Purpose(planeteActionRef.value)
+    })
+    planeteActionSubmit.addEventListener[Event]("click", e => {
+      eventsHandler.userWant.newValue(selectedPurpose)
+    })
+
     trait ObsViewUpdateText[E] {
       val obs: Obs[E]
       val htmlCp: InDom[Div]
@@ -233,7 +249,7 @@ case class UI()(implicit uIParams: UIParams) {
       }
       }
       sunCircle = Some(
-        new PointDynamicColorImpl(soleilMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f))
+        new PointDynamicColorCircle(soleilMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f))
       )
 
       eventsHandler.action.newValue(ActionPointDynamic(sunCircle.get, Purpose.PutSun))
@@ -243,21 +259,25 @@ case class UI()(implicit uIParams: UIParams) {
     eventsHandler.planeteAdded.suscribe {
       addForChoice
     }
+    eventsHandler.planeteRemove.suscribe {
+      removeFromSelection
+    }
     eventsHandler
   }
 
-  lazy val chiocePlanete = InDom[Div] (
-    <div id="planeteChoice">
-      <select id="pl">
 
-      </select>
-
-    </div>)
-
-  lazy val ref = $[Select]("pl")
+  var planeteIndex = List[Int]()
   def addForChoice(i : Int): Unit = {
-    val opt = InDom[OptHtml]( <option value={i.toString}>{i.toString}</option>)
-    ref.appendChild(opt.html())
+    planeteIndex = planeteIndex :+ i
+    val opt_ = opt( i)
+    plneteSelection.appendChild(opt_.html())
+  }
+  def opt(i : Int) = InDom[OptHtml]( <option value={i.toString}>{i.toString}</option>)
+  def removeFromSelection(i : Int): Unit = {
+    planeteIndex = planeteIndex.tail.zipWithIndex.map(_._2)
+
+    plneteSelection.clear()
+    planeteIndex.foreach(e => plneteSelection.appendChild(opt(e).html()))
   }
 
   def dw(implicit uIParams: UIParams) = (-uIParams.width / 4d)
@@ -281,7 +301,7 @@ case class UI()(implicit uIParams: UIParams) {
         ctx.translate(-(width / 2) * scale, -(height / 2) * scale)
         minViewX += (width / 2) * scale
         minViewY += (height / 2) * scale
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+        eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
 
       }), "-" -> (() => {
 
@@ -296,28 +316,28 @@ case class UI()(implicit uIParams: UIParams) {
         minViewY += (height / 2) * scale
         ctx.scale(0.9, 0.9)
         ctx.translate(-(width / 2) * scale, -(height / 2) * scale)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+        eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
 
       }), "d" -> (() => {
         val v = dw
         minViewX += v
         ctx.translate(-v, 0)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+        eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "q" -> (() => {
         val v = dw
         minViewX -= v
         ctx.translate(v, 0)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+        eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "z" -> (() => {
         val v = dh
         minViewY += v
         ctx.translate(0, -v)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+        eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "s" -> (() => {
         val v = dh
         minViewY -= v
         ctx.translate(0, v)
-        eventContext.viewPort.newValue(ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
+        eventContext.viewPort.newValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)))
       }), "p" -> (() => {
         sizeFactor *= 1.1
         eventContext.sizeFactor.newValue(sizeFactor)
@@ -355,7 +375,7 @@ case class UI()(implicit uIParams: UIParams) {
     </div>
   })
 
-  lazy val turnAroond = InDom[Div](<div id="trn" class="btn in col">tourne</div>
+  lazy val effacer = InDom[Div](<div id="trn" class="btn in col">Effacer</div>
   )
 
   lazy val comeBack = InDom[Div](<div id="cmb" class="btn in col">revient</div>
@@ -424,7 +444,23 @@ case class UI()(implicit uIParams: UIParams) {
       Replacer Planete
     </div>
   })
+  lazy val chiocePlanete = InDom[Div] (
+    <div id="planeteChoice">
+      <select id="pl">
+      </select>
+    </div>)
 
+  lazy val planeteAction = InDom[Div] (
+    <div id="planeteAction">
+      <select id="planeteAction-select">
+        <option value={Purpose.Delete.toString}>{Purpose.Delete.toString}</option>
+        <option value={Purpose.Create.toString}>{Purpose.Create.toString}</option>
+      </select>
+      <div class="btn in" id ="planeteAction-ok">Appliquer</div>
+    </div>)
+  lazy val  planeteActionSubmit = $[Div]("planeteAction-ok")
+  lazy val planeteActionRef = $[Select]("planeteAction-select")
+  lazy val plneteSelection = $[Select]("pl")
   def bagName(name: String, node: Node) = {
     <div class="col d-inline" id={name + "-id"}>
       <span>

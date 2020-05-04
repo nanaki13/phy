@@ -102,7 +102,7 @@ object Phy {
     override def sum(t: Double): V= V(x*t,y*t)
   }
 
-  implicit val  pdfact: Fact[PointDynamic] = (a,b)=>PointDynamicImpl( P(a,b),m=1 )
+  //implicit val  pdfact: Fact[PointDynamic] = (a,b)=>PointDynamicImpl( P(a,b),m=1 )
 
   implicit class ToXY( val d : Double){
     def *[XY <: XYT[_]](xy : XY)(implicit f : Fact[XY]): XY ={

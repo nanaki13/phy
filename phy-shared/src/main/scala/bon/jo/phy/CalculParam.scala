@@ -1,8 +1,12 @@
 package bon.jo.phy
 
-trait CalculParam extends Param
+trait CalculParam extends Param {
+  var dt = 0d
+
+}
+
 trait Param {
-  def forSun(doThat :  PointDynamic => Unit): Unit = sun foreach doThat
+  //def forSun(doThat :  PointDynamic => Unit): Unit = sun foreach doThat
 
   var G :Double
   var soleilMasse: Double

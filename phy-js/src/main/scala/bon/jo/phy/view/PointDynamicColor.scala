@@ -6,6 +6,8 @@ import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 
 abstract class PointDynamicColor[S](m: Double, pIni: P, vIni: V = V(), aIni: A = A(), val c: Color, val shape: S) extends PointDynamicImpl(pIni, vIni, aIni, m) with JS2D {
+
+
   def mask(implicit ctx: CanvasRenderingContext2D, sizeFactor : Double)
 
 

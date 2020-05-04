@@ -1,6 +1,7 @@
 package bon.jo.phy.view
 
 import bon.jo.phy.Phy.P
+import bon.jo.phy.view.Shape.Circle
 import org.scalajs.dom.CanvasRenderingContext2D
 
 object DrawerJS {
@@ -28,5 +29,28 @@ object DrawerJS {
       stroke
     }
   }
+  object Gen{
+    implicit object ShapeDraw extends
+      Drawer[CanvasRenderingContext2D, Shape] with OpsCtw {
+      override def drawFill( a: Shape, p: P)(implicit t: CanvasRenderingContext2D, sizeFactor : Double): Unit = {
+        beginPath
+        a match {
+          case c : Circle =>  arc(c,p)
+          case _ =>
+        }
+        fill
+      }
+
+      override def drawStrike( a: Shape, p: P)(implicit t : CanvasRenderingContext2D,  sizeFactor: Double): Unit ={
+        beginPath
+        a match {
+          case c : Circle =>  arc(c,p)
+          case _ =>
+        }
+        stroke
+      }
+    }
+  }
+
 
 }
