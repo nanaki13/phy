@@ -5,7 +5,9 @@ import bon.jo.html.DomShell.{$, ExtendedElement}
 import bon.jo.html.Types.FinalComponent
 import bon.jo.html.{DomShell, InDom, XmlHtmlView}
 import bon.jo.phy.Phy.{A, P, V}
-import bon.jo.phy.Purpose.Delete
+import bon.jo.phy.Purpose.{Create, Delete, What}
+import bon.jo.phy.PointDynamic
+import bon.jo.phy.Purpose.What.Point
 import bon.jo.phy.view.DrawerJS._
 import bon.jo.phy.view.{PointDynamicColor, Shape, UIParams, ViewPort}
 import bon.jo.phy.view.Shape.Circle
@@ -42,9 +44,6 @@ case class UI()(implicit uIParams: UIParams) {
     ctx.strokeRect(viewPort.leftBottm.x, viewPort.leftBottm.y, (viewPort.w.x - 5), (viewPort.h.y - 5))
   }
 
-  def drawSun(implicit ctx: CanvasRenderingContext2D, sizeFactor: Double) = {
-    sunCircle foreach (e => e.draw)
-  }
 
   def initView()(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext): EventContext = {
     addHtmlAndEvent
@@ -72,6 +71,8 @@ case class UI()(implicit uIParams: UIParams) {
     ct
   }
 
+  var clickBehavhoir : (Purpose,Purpose.What) = (Purpose.Void,Purpose.Void)
+
   def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext): EventContext = {
 
     def apply[A](): Obs[A] = Obs.once[A]()
@@ -79,6 +80,8 @@ case class UI()(implicit uIParams: UIParams) {
     implicit val e: () => Obs[String] = apply _
 
     mainBag.cellByRaw = 5
+    mainBag.addCell(createPoint.xml())
+    mainBag.addCell(createInteraction.xml())
     mainBag.addCell(bagName("temps * ", timeup.xml()))
     mainBag.addCell(keepTail.xml())
     mainBag.addCell(bagName("vitesse planéte * ", speedUp.xml()))
@@ -103,6 +106,9 @@ case class UI()(implicit uIParams: UIParams) {
     b = bagName("Planètes :", chiocePlanete.xml())
     mainBag.addCell(b)
 
+    b = bagName("Interaction :",chioceInteraction.xml())
+    mainBag.addCell(b)
+
     b = bagName("Action :", planeteAction.xml())
     mainBag.addCell(b)
     org.scalajs.dom.document.body.appendChild(root.html())
@@ -119,7 +125,14 @@ case class UI()(implicit uIParams: UIParams) {
       keepTail.me.innerText = s"tracter:${tracerString}"
     })
 
-
+    createPoint.me.clkOnce().suscribe(e => {
+      clickBehavhoir = (Purpose.Create,Purpose.What.Point)
+      createPoint.me.innerText = "Clicker où mettre"
+    })
+    createInteraction.me.clkOnce().suscribe(e => {
+      clickBehavhoir = (Purpose.Create,Purpose.What.Interaction)
+      createInteraction.me.innerText = "Clicker où mettre"
+    })
     val tUpUpdate = timeup.me.UserCanUpdate()
 
     tUpUpdate.suscribe(e => {
@@ -140,12 +153,11 @@ case class UI()(implicit uIParams: UIParams) {
       eventsHandler.soleilMasse.newValue(soleilMasse)
       masseSoleilInput.me.innerText = soleilMasse.toString
     })
-    toSun.me.clkOnce().suscribe(e => {
-      //gotTo
-      sunCircle.foreach(s => {
-        eventsHandler.actionPoint.newValue(ActionPoint(s.p, Purpose.Move))
-      })
-    })
+//    toSun.me.clkOnce().suscribe(e => {
+//      sunCircle.foreach(s => {
+//        eventsHandler.actionPoint.newValue(ActionPoint(s.p, Purpose.Move))
+//      })
+//    })
     speedUp.me.UserCanUpdate().suscribe(e => {
       eventsHandler.speedFactor.newValue(e.toDouble)
 
@@ -183,7 +195,11 @@ case class UI()(implicit uIParams: UIParams) {
 
     })
     plneteSelection.addEventListener[Event]("change", e => {
-      eventsHandler.userChoicePlanete.newValue(e.target.asInstanceOf[Select].value.toInt)
+      eventsHandler.userChoice.newValue((Purpose.What.Point,e.target.asInstanceOf[Select].value.toInt))
+    })
+
+   interactionSelection.addEventListener[Event]("change", e => {
+     eventsHandler.userChoice.newValue((Purpose.What.Interaction,e.target.asInstanceOf[Select].value.toInt))
     })
 
 
@@ -231,53 +247,89 @@ case class UI()(implicit uIParams: UIParams) {
     }).link()
     eventsHandler.stabilise.newValue(false)
     canvas.me.clkOnce().suscribe(e => {
-      val rect = canvas.me.getBoundingClientRect()
-      val xc = rect.left
-      val yc = rect.bottom
-      val pc = P(xc, yc)
+      if(clickBehavhoir != (Purpose.Void,Purpose.Void)){
+        val rect = canvas.me.getBoundingClientRect()
+        val xc = rect.left
+        val yc = rect.bottom
+        val pc = P(xc, yc)
 
-      val x = e.clientX
-      val y = -e.clientY
-      val clickIn = pc + P(x, y)
-      val other = P((clickIn.x / scale + minViewX), (clickIn.y / scale + minViewY))
+        val x = e.clientX
+        val y = -e.clientY
+        val clickIn = pc + P(x, y)
+        val other = P((clickIn.x / scale + minViewX), (clickIn.y / scale + minViewY))
 
 
-      implicit val s: Double = sizeFactor
-      sunCircle.foreach { soleilEl => {
-        ctx.fillStyle = maskColor
-        soleilEl.mask
+        implicit val s: Double = sizeFactor
+        clickBehavhoir match {
+          case (Purpose.Void,Purpose.Void) =>
+          case (purpose,what) =>  eventsHandler.action.newValue(
+            ActionPointDynamic(new PointDynamicColorCircle(soleilMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), purpose,what))
+
+        }
+        clickBehavhoir._2 match {
+          case Purpose.Void =>
+          case What.Point => createPoint.me.innerText = "Créer planète"
+          case What.Interaction => createInteraction.me.innerText = "Créer interaction"
+        }
+        clickBehavhoir = (Purpose.Void,Purpose.Void)
       }
-      }
-      sunCircle = Some(
-        new PointDynamicColorCircle(soleilMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f))
-      )
-
-      eventsHandler.action.newValue(ActionPointDynamic(sunCircle.get, Purpose.PutSun))
-
     })
 
-    eventsHandler.planeteAdded.suscribe {
-      addForChoice
+
+
+    eventsHandler.opeationOnElementDone.suscribe {
+      case (purpose, Point, i) => {
+        purpose match {
+          case Purpose.PlanetTarget =>
+          case Purpose.Move =>
+          case Purpose.Delete => removePlaneteFromSelection(i)
+          case Purpose.Create => {
+            scalajs.js.special.debugger()
+            planeteIndex = addForChoice(i,planeteIndex,plneteSelection)
+          }
+          case Purpose.Void =>
+          case _ =>
+        }
+      }
+      case (purpose, Purpose.What.Interaction, i) =>
+        purpose match {
+          case Purpose.PlanetTarget =>
+          case Purpose.Move =>
+          case Purpose.Delete => removeInteractionFromSelection(i)
+          case Purpose.Create => {
+            interactionIndex = addForChoice(i,interactionIndex,interactionSelection)
+          }
+          case Purpose.Void =>
+          case _ =>
+        }
+      case a @ (_,Purpose.Void,_) => throw new IllegalStateException(a._1.toString)
     }
-    eventsHandler.planeteRemove.suscribe {
-      removeFromSelection
-    }
+
     eventsHandler
   }
 
 
-  var planeteIndex = List[Int]()
-  def addForChoice(i : Int): Unit = {
-    planeteIndex = planeteIndex :+ i
+  private var planeteIndex = List[Int]()
+  private var interactionIndex = List[Int]()
+  def addForChoice(i : Int,index : List[Int],select: Select):  List[Int] = {
+    scalajs.js.special.debugger()
+    val  newI = index :+ i
     val opt_ = opt( i)
-    plneteSelection.appendChild(opt_.html())
+    select.appendChild(opt_.html())
+    newI
   }
   def opt(i : Int) = InDom[OptHtml]( <option value={i.toString}>{i.toString}</option>)
-  def removeFromSelection(i : Int): Unit = {
-    planeteIndex = planeteIndex.tail.zipWithIndex.map(_._2)
+  def removePlaneteFromSelection(i : Int): Unit = {
+    planeteIndex = planeteIndex.slice(0,planeteIndex.size-1)
 
     plneteSelection.clear()
     planeteIndex.foreach(e => plneteSelection.appendChild(opt(e).html()))
+  }
+
+  def removeInteractionFromSelection(i : Int): Unit = {
+    interactionIndex = interactionIndex.slice(0,interactionIndex.size-1)
+    interactionSelection.clear()
+    interactionIndex.foreach(e => interactionSelection.appendChild(opt(e).html()))
   }
 
   def dw(implicit uIParams: UIParams) = (-uIParams.width / 4d)
@@ -362,67 +414,79 @@ case class UI()(implicit uIParams: UIParams) {
 
   }
 
-  lazy val stabilise = InDom[Div]({
+  private lazy val stabilise = InDom[Div]({
     <div id="applyEnergyEqual" class="col btn in">
       Stabilise
     </div>
   })
-  lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={width.toString} height={height.toString}></canvas>)
+  private lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={width.toString} height={height.toString}></canvas>)
 
-  lazy val masseSoleilInput = InDom[Div]({
+  private lazy val masseSoleilInput = InDom[Div]({
     <div id="in" class="btn in col">
       {soleilMasse}
     </div>
   })
 
-  lazy val effacer = InDom[Div](<div id="trn" class="btn in col">Effacer</div>
+  private lazy val effacer = InDom[Div](<div id="trn" class="btn in col">Effacer</div>
   )
 
-  lazy val comeBack = InDom[Div](<div id="cmb" class="btn in col">revient</div>
+  private lazy val comeBack = InDom[Div](<div id="cmb" class="btn in col">revient</div>
   )
-  lazy val partirBack = InDom[Div](<div id="push" class="btn in col">partir</div>
+  private lazy val partirBack = InDom[Div](<div id="push" class="btn in col">partir</div>
   )
-  lazy val keepTail = InDom[Div]({
+  private lazy val createPoint = InDom[Div]({
+    <div id="c-p" class="btn in col">
+      Créer planète
+    </div>
+  })
+  private lazy val createInteraction = InDom[Div]({
+    <div id="c-i" class="btn in col">
+      Créer interaction
+    </div>
+  })
+
+
+  private lazy val keepTail = InDom[Div]({
     <div id="keepTail" class="btn in col">tracter:
       {tracerString}
     </div>
   })
-  lazy val speedUp = InDom[Div]({
+  private  lazy val speedUp = InDom[Div]({
     <div id="speeUp" class="btn in">
       {speedFactor}
     </div>
   })
-  lazy val timeup = InDom[Div]({
+  private lazy val timeup = InDom[Div]({
     <div id="timeup" class="btn in">
       {scleTime}
     </div>
   })
-  lazy val correctionInput = InDom[Div]({
+  private  lazy val correctionInput = InDom[Div]({
     <div id="cor" class="btn in">
       {if (correction) "Oui" else "Non"}
     </div>
   })
-  lazy val sizeFactorInput = InDom[Div]({
+  private lazy val sizeFactorInput = InDom[Div]({
     <div id="sizeFactor" class="btn in">
       {sizeFactor}
     </div>
   })
 
-  lazy val interactionType = InDom[Div]({
+  private lazy val interactionType = InDom[Div]({
     <div id="inter" class="btn in">
       {switchIneraction.head.name}
     </div>
   })
-  lazy val frtOptionIn = InDom[Div]({
+  private lazy val frtOptionIn = InDom[Div]({
     <div id="frt" class="btn in">0</div>
   })
-  lazy val kRessortInput = InDom[Div]({
+  private lazy val kRessortInput = InDom[Div]({
     <div id="kRessortInput" class="btn in">
       {kRessort}
     </div>
   })
 
-  lazy val vMas = InDom[Div]({
+  private lazy val vMas = InDom[Div]({
     <div id="vMasse" class="d-inline">
       <div id="pMasse" class="btn in">
         +
@@ -432,36 +496,41 @@ case class UI()(implicit uIParams: UIParams) {
       </div>
     </div>
   })
-  lazy val pMas = $[Div]("pMasse")
-  lazy val mMas = $[Div]("mMasse")
-  lazy val toSun = InDom[Div]({
+  private lazy val pMas = $[Div]("pMasse")
+  private lazy val mMas = $[Div]("mMasse")
+  private lazy val toSun = InDom[Div]({
     <div id="toSun" class="col btn in">
       Aller au soleil
     </div>
   })
-  lazy val replacer = InDom[Div]({
+  private lazy val replacer = InDom[Div]({
     <div id="replacer" class="col btn in">
       Replacer Planete
     </div>
   })
-  lazy val chiocePlanete = InDom[Div] (
+
+  private lazy val planeteAction = InDom[Div] (
+    <div id="planeteAction">
+      <select id="planeteAction-select">
+        <option value={Purpose.Delete.toString}>Supprimer</option>
+        <!--option value={Purpose.Create.toString}>{Purpose.Create.toString}</option-->
+      </select>
+      <div class="btn in" id ="planeteAction-ok">Appliquer</div>
+    </div>)
+  private lazy val  planeteActionSubmit = $[Div]("planeteAction-ok")
+  private lazy val planeteActionRef = $[Select]("planeteAction-select")
+
+  private lazy val chiocePlanete = InDom[Div] (
     <div id="planeteChoice">
       <select id="pl">
       </select>
     </div>)
+  private lazy val plneteSelection = $[Select]("pl")
 
-  lazy val planeteAction = InDom[Div] (
-    <div id="planeteAction">
-      <select id="planeteAction-select">
-        <option value={Purpose.Delete.toString}>{Purpose.Delete.toString}</option>
-        <option value={Purpose.Create.toString}>{Purpose.Create.toString}</option>
-      </select>
-      <div class="btn in" id ="planeteAction-ok">Appliquer</div>
-    </div>)
-  lazy val  planeteActionSubmit = $[Div]("planeteAction-ok")
-  lazy val planeteActionRef = $[Select]("planeteAction-select")
-  lazy val plneteSelection = $[Select]("pl")
-  def bagName(name: String, node: Node) = {
+  private lazy val chioceInteraction = doSelectHtml("interaction-div-sel","inter-sel")
+  private lazy val interactionSelection = $[Select]("inter-sel")
+
+  private def bagName(name: String, node: Node) = {
     <div class="col d-inline" id={name + "-id"}>
       <span>
         {name}
@@ -469,7 +538,14 @@ case class UI()(implicit uIParams: UIParams) {
     </div>
   }
 
-  object mainBag extends FinalComponent[Div] {
+  private def doSelectHtml(idDiv : String, idSelect : String )= InDom[Div] (
+    <div id={idDiv}>
+      <select id={idSelect}>
+      </select>
+    </div>)
+
+
+  private object mainBag extends FinalComponent[Div] {
     var cellByRaw = 5
     var current = 1
 

@@ -27,11 +27,7 @@ case class UIParams(
                     var G: Double  = 6.67E-1
                    )  extends Param {
    var interaction: Interaction =Interaction.Faible
-   var sun: Option[PointDynamic] = sunCircle
 
-  def sunCircle: Option[PointDynamicColor[Circle]] = _sunCircle
-  def sunCircle_=(e :  Option[PointDynamicColor[Circle]]) = {
-    _sunCircle = e
-    sun =e
-  }
+
+
 }

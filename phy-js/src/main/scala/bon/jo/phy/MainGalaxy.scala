@@ -1,6 +1,7 @@
 package bon.jo.phy
 
 import bon.jo.phy.Phy.{A, P, V}
+import bon.jo.phy.Purpose.What
 import bon.jo.phy.view.DrawerJS._
 import bon.jo.phy.view.Shape.Circle
 import bon.jo.phy.view.{Drawer, DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
@@ -62,14 +63,14 @@ object MainGalaxy extends App {
                                               , UI: UI
   ,eventContext: EventContext): Unit = {
     implicit val s: Double = uiParam.sizeFactor
-    UI.drawSun
+
 
     val sgn = if (calculParam.scleTime > 0) 1 else -1
     val dtt = sgn * dt
     val intPos = sgn * calculParam.scleTime.toInt
     val pCam = UI.camera.p
     calculParam.dt =dtt
-    calculateur.model.rds.foreach(e => {
+    calculateur.model.points.foreach(e => {
       if (!uiParam.tracer) {
         ctx.fillStyle = uiParam.maskColor
         e.mask
@@ -91,7 +92,7 @@ object MainGalaxy extends App {
     if(pCam != UI.camera.p){
       UI.goTo(pCam)
     }
-    calculateur.model.rds.foreach(e => e.draw)
+    calculateur.model.points.foreach(e => e.draw)
   }
 
 
@@ -100,7 +101,7 @@ object MainGalaxy extends App {
     //   eventContext.action.suscribe(calculParam.correction = _)
     eventContext.frotement.suscribe(calculParam.frt = _)
     eventContext.ineraction.suscribe(calculParam.interaction = _)
-    eventContext.masseSolei.suscribe(calculParam.soleilMasse = _)
+  //  eventContext.masseSolei.suscribe(calculParam.soleilMasse = _)
     eventContext.scaleTime.suscribe(calculParam.scleTime = _)
     calculParam.kRessort = 1
     eventContext.speedFactor.suscribe(calculParam.speedFactor = _)
@@ -115,30 +116,34 @@ object MainGalaxy extends App {
                                            ctx: CanvasRenderingContext2D,
                                            eventContext: EventContext, model: Model[PointDynamicColorCircle]) = {
     implicit val s = uIParams.sizeFactor
-    eventContext.action.suscribe(action => {
-      action.what match {
-        case Purpose.PutSun => calculParam.sun = {
-
-          action.p match {
-            case impl: PointDynamicColorCircle => {
-              model.interactions =  (impl,calculParam.interaction) :: Nil
-              impl.draw
-            }
-            case _ =>
+    eventContext.action.suscribe {
+      case ActionPointDynamic(pdy, Purpose.Create, Purpose.What.Interaction) =>
+        pdy match {
+          case impl: PointDynamicColorCircle => {
+            model.interactions = model.interactions :+ (impl, calculParam.interaction)
+            eventContext.opeationOnElementDone.newValue((Purpose.Create,Purpose.What.Interaction,model.interactions.size -1))
           }
-          Some(action.p.asInstanceOf[PointDynamicColorCircle]);
+          case _ =>
         }
-        case Purpose.PlanetTarget =>
-        case Purpose.Move =>
-        case _ =>
-      }
-    })
+      case ActionPointDynamic(pdy, Purpose.Create, Purpose.What.Point) =>
+        pdy match {
+          case impl: PointDynamicColorCircle => {
+            val p = rdPointDynamic
+            p.p = impl.p
+            model.points = model.points :+ p
+            eventContext.opeationOnElementDone.newValue((Purpose.Create,Purpose.What.Point,model.points.size -1))
+          }
+          case _ =>
+        }
+
+      case _ =>
+    }
     eventContext.actionPoint.suscribe(action => {
       action.what match {
-        case Purpose.PutSun =>
+      //  case Purpose.PutSun =>
         case Purpose.PlanetTarget =>
         case Purpose.Move => {
-          selectedIndex = -1
+          selectedIndexPlanete = (Purpose.Void,-1)
           ui.goTo(action.p); ui.camera = PointDynamicImpl(action.p)
         }
         case _ =>
@@ -153,37 +158,53 @@ object MainGalaxy extends App {
       ui.clear
       calculateur.replaceAround(model.interactions.head._1.p,viewPort.w.x/4, 0, calculParam)
     })
-    eventContext.userChoicePlanete.suscribe(e => {
-      ui.clear
-      selectedIndex = e
-      ui.follow( model.rds(e))
-    })
+    eventContext.userChoice.suscribe {
+      case (Purpose.Void, _) =>
+      case e @ (what, i) => ui.clear
+        what match {
+          case Purpose.Void =>
+          case What.Point => ui.follow(model.points(i))
+          case What.Interaction => ui.goTo(model.interactions(i)._1.p)
+        }
+        selectedIndexPlanete = e
+
+    }
     eventContext.clean.suscribe(_=> ui.clear)
 
     eventContext.userWant.suscribe {
-      case Purpose.PutSun =>
+      //case Purpose.PutSun =>
       case Purpose.PlanetTarget =>
       case Purpose.Move =>
-      case Purpose.Delete => if (selectedIndex != -1) {
-        ctx.fillStyle = uIParams.maskColor
-        model.rds.zipWithIndex.find(_._2 == selectedIndex).get._1.mask
-        ui.camera = stopCamera(ui.camera)
-        println(model.rds.size)
-        model.rds = model.rds.zipWithIndex.filter(_._2 != selectedIndex).map(_._1)
-        println(model.rds.size)
-        eventContext.planeteRemove.newValue(selectedIndex)
-        selectedIndex = -1
-      }
-      case Purpose.Create => {
-        model.rds = model.rds :+ rdPointDynamic
-        eventContext.planeteAdded.newValue(model.rds.size - 1)
-      }
+      case Purpose.Delete =>
+        selectedIndexPlanete match {
+          case (Purpose.What.Point,i) =>
+            ctx.fillStyle = uIParams.maskColor
+            model.points.zipWithIndex.find(_._2 == i).get._1.mask
+            ui.camera = stopCamera(ui.camera)
+            model.points = model.points.zipWithIndex.filter(_._2 != i).map(_._1)
+            eventContext.opeationOnElementDone.newValue((Purpose.Delete,selectedIndexPlanete._1,selectedIndexPlanete._2))
+
+          case (Purpose.What.Interaction,i) =>
+            ctx.fillStyle = uIParams.maskColor
+            model.interactions.zipWithIndex.find(_._2 == i).get._1._1.mask
+            ui.camera = stopCamera(ui.camera)
+            model.interactions = model.interactions.zipWithIndex.filter(_._2 != i).map(_._1)
+            eventContext.opeationOnElementDone.newValue((Purpose.Delete,selectedIndexPlanete._1,selectedIndexPlanete._2))
+          case (Purpose.Void,_)=>
+
+        }
+        selectedIndexPlanete = (Purpose.Void,-1)
+
+
+
+
+
       case _ =>
     }
     eventContext
   }
 
-  var selectedIndex = -1
+  var selectedIndexPlanete : (Purpose.What,Int)= (Purpose.Void, -1 )
   var viewPort: ViewPort = _
 
 
@@ -214,10 +235,10 @@ object MainGalaxy extends App {
       if(calcul.haveToStab){
         eventContext.stabilise.newValue(false)
       }
-      if (m.rds.length < 20 && initPhase) {
+      if (m.points.length < 20 && initPhase) {
         if (Random.nextDouble() > 0.85) {
-          m.rds = m.rds :+ rdPointDynamic
-          eventContext.planeteAdded.newValue( m.rds.size -1)
+          m.points = m.points :+ rdPointDynamic
+          eventContext.opeationOnElementDone.newValue(Purpose.Create,Purpose.What.Point, m.points.size -1)
         }
       }else{
         initPhase = false

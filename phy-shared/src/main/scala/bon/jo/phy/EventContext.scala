@@ -29,9 +29,8 @@ case class EventContext(
                          actionPoint: Obs[ActionPoint] = obs(),
                          viewPort: Obs[ViewPort] = obs(),
                          followDynamicPoint : Obs[PointDynamic] = obs(),
-                         planeteAdded: Obs[Int] = obs(),
-                         planeteRemove: Obs[Int] = obs(),
-                         userChoicePlanete : Obs[Int] = obs(),
+                         opeationOnElementDone: Obs[(Purpose,Purpose.What,Int)] = obs(),
+                         userChoice : Obs[(Purpose.What,Int)] = obs(),
                          userWant : Obs[Purpose]= obs(),
                        ) {
 

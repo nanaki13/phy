@@ -19,7 +19,7 @@ case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
   }
 
 
-  def rds: Seq[PointDynamic] = model.rds
+  def rds: Seq[PointDynamic] = model.points
 
   def replaceAround(sun: P, from: Double, step: Double, calculParam: CalculParam): Unit = {
 
