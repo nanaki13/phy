@@ -6,6 +6,9 @@
     color:white;
     width: auto;
 }
+.ctrl:hover{
+    color:#2ec3d5
+}
 body{
 color:white
 }
@@ -19,4 +22,7 @@ span,div{
     top:0;
     z-index:10;
     color:white;
+}
+#root{
+    width : 20em;
 }

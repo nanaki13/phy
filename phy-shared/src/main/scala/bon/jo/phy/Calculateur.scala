@@ -7,7 +7,7 @@ import scala.util.Random
 case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
   val `2PI`: Double = math.Pi * 2
 
-  def doFundamentalPrincipleOfDynamics(on: PointDynamic)(implicit calculParam: CalculParam) = {
+  def doFundamentalPrincipleOfDynamics(on: PointDynamic)(implicit calculParam: CalculParam): Unit = {
     on.a = A()
     model.interactions.foreach(e => {
       val (source, inter) = e
@@ -21,7 +21,7 @@ case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
 
   def rds: Seq[PointDynamic] = model.points
 
-  def replaceAround(sun: P, from: Double, step: Double, calculParam: CalculParam): Unit = {
+  def replaceAround(sun: P, from: Double, step: Double): Unit = {
 
 
     rds.zipWithIndex.foreach(planeteIndex => {
@@ -37,23 +37,23 @@ case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
 
   }
 
-  var haveToStab = false;
+  var haveToStab = false
 
-  def stab(haveToStabp: Boolean) = haveToStab = haveToStabp;
+  def stab(haveToStabp: Boolean): Unit = haveToStab = haveToStabp
 
-  def push = rds.foreach(p => p.v = new V(p.a / p.a.n * p.v.n))
+  def pull(): Unit = rds.foreach(p => p.v = new V(p.a / p.a.n * p.v.n))
 
-  def pull = rds.foreach(p => p.v = -(new V(p.a / p.a.n * p.v.n)) * 1.2f)
+  def push(): Unit = rds.foreach(p => p.v = -new V(p.a / p.a.n * p.v.n) * 1.2f)
 
-  def applyV(factorV: Double) = {
+  def applyV(factorV: Double): Unit = {
     rds.foreach(p => p.v = p.v * factorV)
   }
 
-  def turnAroundSun(p: P) = {
+  def turnAroundSun(p: P): Unit = {
 
     rds.foreach(e => {
       val vect: V = new V(p - e.p)
-      val vi = ((vect.rotate90) / vect.n) * e.v.n
+      val vi = (vect.rotate90 / vect.n) * e.v.n
 
       e.v = vi
       e.a = A()
@@ -77,7 +77,7 @@ case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
 
         println("on redresse")
 
-        on.v = on.a.rotate90 sum(50)
+        on.v = on.a.rotate90 sum 50
 
 
 

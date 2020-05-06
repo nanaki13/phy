@@ -10,6 +10,7 @@ object Shape {
   case class Square(r: Double) extends Shape
 
   case class Rectangle(w: Double, h: Double) extends Shape
+  case class Text(str : String) extends Shape
 
 }
 

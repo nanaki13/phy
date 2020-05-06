@@ -2,7 +2,6 @@ package bon.jo.phy
 
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.Purpose.What
-import bon.jo.phy.view.DrawerJS._
 import bon.jo.phy.view.Shape.Circle
 import bon.jo.phy.view.{Drawer, DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
 import org.scalajs.dom.CanvasRenderingContext2D
@@ -47,7 +46,6 @@ object MainGalaxy extends App {
   def drawFirst()(implicit ctx: CanvasRenderingContext2D, uIParams: UIParams,model: Model[_]): Unit = {
     import uIParams._
     implicit val s: Double = sizeFactor
-    implicit val a: Drawer[CanvasRenderingContext2D, Shape] = DrawerJS.Gen.ShapeDraw
     model.interactions.foreach{ soleilEl =>
      val centreForce: PointDynamicColor[Shape] =  soleilEl._1.asInstanceOf[PointDynamicColor[Shape]]
       ctx.fillStyle = uIParams.maskColor
@@ -156,7 +154,7 @@ object MainGalaxy extends App {
     eventContext.viewPort.suscribe(viewPort = _)
     eventContext.replaceAround.suscribe(e => {
       ui.clear
-      calculateur.replaceAround(model.interactions.head._1.p,viewPort.w.x/4, 0, calculParam)
+      calculateur.replaceAround(model.interactions.head._1.p, viewPort.w.x/4, 0)
     })
     eventContext.userChoice.suscribe {
       case (Purpose.Void, _) =>
@@ -164,7 +162,7 @@ object MainGalaxy extends App {
         what match {
           case Purpose.Void =>
           case What.Point => ui.follow(model.points(i))
-          case What.Interaction => ui.goTo(model.interactions(i)._1.p)
+          case What.Interaction =>  ui.camera = stopCamera(ui.camera);ui.goTo(model.interactions(i)._1.p)
         }
         selectedIndexPlanete = e
 
@@ -214,6 +212,14 @@ object MainGalaxy extends App {
     implicit val ui: UI = UI()
     implicit val eventContext: EventContext = EventContext()
     implicit val ctx: CanvasRenderingContext2D = ui.getCtx2D
+    val tex = new TextDynamic(10,P(100,100),c= Color.Black,shape = Shape.Text("Test"))
+    implicit val sf : Double = 1
+    ctx.save()
+    ctx.scale(7,7)
+    tex.draw
+    ctx.fillStyle =uiParams.maskColor
+    tex.mask
+    ctx.restore()
     ui.initView()
     // physical repère
     ctx.transform(1, 0, 0, -1, 1, 1)
@@ -227,6 +233,7 @@ object MainGalaxy extends App {
     linkAction(calculParam)
     eventContext.viewPort.newValue(ui.viewPort)
 
+
     // org.scalajs.dom.window.addEventListener[KeyboardEvent]("keyup", hadleKeyB)
     mainAnim = scalajs.js.timers.setInterval(dekataTFrame)({
       drawFirst()
@@ -235,14 +242,14 @@ object MainGalaxy extends App {
       if(calcul.haveToStab){
         eventContext.stabilise.newValue(false)
       }
-      if (m.points.length < 20 && initPhase) {
-        if (Random.nextDouble() > 0.85) {
-          m.points = m.points :+ rdPointDynamic
-          eventContext.opeationOnElementDone.newValue(Purpose.Create,Purpose.What.Point, m.points.size -1)
-        }
-      }else{
-        initPhase = false
-      }
+//      if (m.points.length < 20 && initPhase) {
+//        if (Random.nextDouble() > 0.85) {
+//          m.points = m.points :+ rdPointDynamic
+//          eventContext.opeationOnElementDone.newValue(Purpose.Create,Purpose.What.Point, m.points.size -1)
+//        }
+//      }else{
+//        initPhase = false
+//      }
 
     })
 
@@ -273,6 +280,16 @@ class PointDynamicColorCircle(m: Double, pIni: P, vIni: V = V(), aIni: A = A(), 
 
     drawFill[Circle](this.shape * 1.2F, p)
   }
+
+  override implicit val drawer: Drawer[CanvasRenderingContext2D, Circle] = DrawerJS.CircleDraw
+}
+class TextDynamic(m: Double, pIni: P, vIni: V = V(), aIni: A = A(), c: Color, shape: Shape.Text) extends PointDynamicColor[Shape.Text](m, pIni, vIni, aIni, c, shape) {
+  override def mask(implicit tx: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
+
+    drawFill[Shape.Text](this.shape, p)
+  }
+
+  override implicit val drawer: Drawer[CanvasRenderingContext2D, Shape.Text] = DrawerJS.TextDraw
 }
 
 

@@ -29,6 +29,15 @@ object DrawerJS {
       stroke
     }
   }
+  implicit object TextDraw extends Drawer[CanvasRenderingContext2D, Shape.Text] with OpsCtw{
+    override def drawFill(a: Shape.Text, p: P)(implicit t: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
+      t.fillText(a.str,p.x,p.y)
+    }
+
+    override def drawStrike(a: Shape.Text, p: P)(implicit t: CanvasRenderingContext2D, sizeFactor: Double): Unit ={
+      t.strokeText(a.str,p.x,p.y)
+    }
+  }
   object Gen{
     implicit object ShapeDraw extends
       Drawer[CanvasRenderingContext2D, Shape] with OpsCtw {
