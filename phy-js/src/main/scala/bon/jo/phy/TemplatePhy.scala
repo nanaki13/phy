@@ -1,8 +1,8 @@
 package bon.jo.phy
 
-import bon.jo.Logger
 import bon.jo.html.DomShell.$
 import bon.jo.html.Types.FinalComponent
+import bon.jo.html.cpnt.ReadImportFile
 import bon.jo.html.{InDom, XmlHtmlView}
 import bon.jo.phy.view.UIParams
 import org.scalajs.dom.html.{Canvas, Div, Select, Option => OptHtml}
@@ -10,12 +10,19 @@ import org.scalajs.dom.raw.HTMLElement
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.xml.{Attribute, Elem, Group, MetaData, Node, Null, PrefixedAttribute, UnprefixedAttribute}
-
+import scala.scalajs.js
+import scala.xml._
+import EventContext._
+import bon.jo.phy.ImportExport.ModelExport
 trait TemplatePhy {
-  val params: UIParams
 
+
+
+  val params: UIParams
   import params._
+
+
+
 
   val noneChoixString = "-"
   val NoneChoix: InDom[OptHtml] with XmlHtmlView[OptHtml] = optFromStringValue(noneChoixString)
@@ -46,7 +53,7 @@ trait TemplatePhy {
 
     mainBag :+ crCont
 
-    val selection = Grid[String]("selectino-cont", Grid.withLegend,"Création")
+    val selection = Grid[String]("selectino-cont", Grid.withLegend,"Sélection")
     selection.cellByRaw = 3
     var b = bagName("Planètes :", chiocePlanete.xml())
     selection :+ b
@@ -74,101 +81,105 @@ trait TemplatePhy {
 
     global :+ comeBack :+ partirBack
     global :+ bagName("frotement:", frtOptionIn.xml()) :+ bagName("correction:", correctionInput.xml())
-    global :+ stabilise.xml() :+ replacer.xml()
+    global :+ stabilise :+ replacer :+ save :+ importModel
     mainBag :+ global
 
-    val drawProp = Grid("drwProp")
+    val drawProp = Grid("drwProp", Grid.withLegend,"Dessin")
 
-    drawProp :+ keepTail.xml() :+ effacer.xml() :+ bagName("taille:", sizeFactorInput.xml())
+    drawProp :+ keepTail :+ effacer :+ bagName("taille:", sizeFactorInput.xml())
 
     mainBag :+ drawProp
     // mainBag:+ bagName("masse : ", masseSoleilInput.xml())
     //  mainBag:+ bagName("interaction:", interactionType.xml())
 
 
-    mainBag
+
 
 
   }
-
+  protected lazy val movable: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
+    <div id="dyn-1" class="position-absolute mv" >
+      Je Dois bouger
+    </div>
+  })
   protected lazy val stabilise: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="applyEnergyEqual" class="col btn in">
+    <div id="applyEnergyEqual" class="col in">
       Stabilise
     </div>
   })
   protected lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={width.toString} height={height.toString}></canvas>)
 
   protected lazy val masseSoleilInput: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="in" class="btn in col">
+    <div id="in" class="in col">
       {soleilMasse}
     </div>
   })
 
-  protected lazy val effacer: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="trn" class="btn in col">Effacer</div>
+  protected lazy val effacer: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="trn" class="in col">Effacer</div>
   )
 
-  protected lazy val comeBack: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="cmb" class="btn in col">revient</div>
+  protected lazy val comeBack: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="cmb" class="in col">revient</div>
   )
-  protected lazy val partirBack: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="push" class="btn in col">partir</div>
+  protected lazy val partirBack: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="push" class="in col">partir</div>
   )
   protected lazy val createPoint: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="c-p" class="btn in col">
+    <div id="c-p" class="in col">
       Créer planète
     </div>
   })
   protected lazy val createInteraction: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="c-i" class="btn in col">
+    <div id="c-i" class="in col">
       Créer interaction
     </div>
   })
 
 
   protected lazy val keepTail: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="keepTail" class="btn in col">tracter:
+    <div id="keepTail" class="in col">tracter:
       {tracerString}
     </div>
   })
   protected lazy val speedUp: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="speeUp" class="btn in">
+    <div id="speeUp" class="in">
       {speedFactor}
     </div>
   })
   protected lazy val timeup: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="timeup" class="btn in">
+    <div id="timeup" class="in">
       {scleTime}
     </div>
   })
   protected lazy val correctionInput: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="cor" class="btn in">
+    <div id="cor" class="in">
       {if (correction) "Oui" else "Non"}
     </div>
   })
   protected lazy val sizeFactorInput: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="sizeFactor" class="btn in">
+    <div id="sizeFactor" class="in">
       {sizeFactor}
     </div>
   })
 
   protected lazy val interactionType: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="inter" class="btn in">
+    <div id="inter" class="in">
       {switchIneraction.head.name}
     </div>
   })
   protected lazy val frtOptionIn: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="frt" class="btn in">0</div>
+    <div id="frt" class="in">0</div>
   })
   protected lazy val kRessortInput: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="kRessortInput" class="btn in">
+    <div id="kRessortInput" class="in">
       {kRessort}
     </div>
   })
 
   protected lazy val vMas: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="vMasse" class="d-inline">
-      <div id="pMasse" class="btn in">
+      <div id="pMasse" class="in">
         +
       </div>
-      <div id="mMasse" class="btn in">
+      <div id="mMasse" class="in">
         -
       </div>
     </div>
@@ -176,13 +187,19 @@ trait TemplatePhy {
   protected lazy val pMas: Div = $[Div]("pMasse")
   protected lazy val mMas: Div = $[Div]("mMasse")
   protected lazy val toSun: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="toSun" class="col btn in">
+    <div id="toSun" class="col in">
       Aller au soleil
     </div>
   })
   protected lazy val replacer: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="replacer" class="col btn in">
+    <div id="replacer" class="col in">
       Replacer Planete
+    </div>
+  })
+
+  protected lazy val save: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
+    <div id="save" class="col in">
+      Sauvegarder
     </div>
   })
 
@@ -192,7 +209,7 @@ trait TemplatePhy {
         <option value={Purpose.Delete.toString}>Supprimer</option>
         <!--option value={Purpose.Create.toString}>{Purpose.Create.toString}</option-->
       </select>
-      <div class="btn in" id="planeteAction-ok">Appliquer</div>
+      <div class="in" id="planeteAction-ok">Appliquer</div>
     </div>)
   protected lazy val planeteActionSubmit: Div = $[Div]("planeteAction-ok")
   protected lazy val planeteActionRef: Select = $[Select]("planeteAction-select")
@@ -202,6 +219,12 @@ trait TemplatePhy {
 
   protected lazy val chioceInteraction: InDom[Div] with XmlHtmlView[Div] = doSelectHtml("interaction-div-sel", "inter-sel")
   protected lazy val interactionSelection: Select = $[Select]("inter-sel")
+
+  implicit val cv : js.Any => Model[PointDynamicColorCircle] = { e =>
+    ModelExport.unapply(e.asInstanceOf[ModelExport]).get
+  }
+
+  protected val importModel = new ReadImportFile[Model[PointDynamicColorCircle]]()
 
   private def bagName(name: String, node: Node) = {
     <div class="col d-inline" id={name + "-id"}>
@@ -227,7 +250,7 @@ trait TemplatePhy {
 
     object withLegend extends Mode[String] {
       override def apply(node: Elem, legend: String): Node = {
-        updateAtttibute(node,"class","border").copy(child =  <span class="legend">{legend}</span> +: node.child)
+       node.copy(child =  <div class="border rounded m-1 p-1"><span class="legend">{legend}</span>{node.child}</div>)
       }
     }
 
@@ -242,33 +265,62 @@ trait TemplatePhy {
 
   case class GridPrams[A]( mode: Grid.Mode[A],  id: String,  modeParam: A )
 
-  case class LegendParam(string: String)
+
   def appendToAttribute(n: Elem, nameAtrr : String, vale : String): Elem = {
     updateAtttibute(n,nameAtrr,(n \@ nameAtrr) + vale)
   }
+
+  def appendTokeyOrCreate(n: Elem, nameAtrr : String, vale : String,sep : Char = ' '): Elem = {
+    if(n.attribute(nameAtrr).isDefined && (n \@ nameAtrr).contains(vale)){
+
+      updateAtttibute(n,nameAtrr,(n \@ nameAtrr)+ sep + vale)
+    } else{
+
+      if(n.attribute(nameAtrr).isDefined){
+        n.copy(attributes = n.attributes.map(e=> {
+          if (e.key == nameAtrr) {
+            atrTail(nameAtrr, vale,e.next)
+          } else {
+            e
+          }
+        }).toList.head)}
+        else{
+        n.copy(attributes = MetaData.concatenate(n.attributes,atrTail(nameAtrr,vale,scala.xml.Null))
+        )
+      }
+    }
+  }
+
+
+
+  def atrTail(name : String,valeur : String,n : MetaData) = new UnprefixedAttribute(name,valeur,n)
   def updateAtttibute(n: Elem, nameAtrr : String , vale : String): Elem = {
     val nMeta = (n.attributes.map {
 
       case Null => Null
+      case attribute: PrefixedAttribute if attribute.key == nameAtrr  => new PrefixedAttribute(attribute.pre,attribute.key, vale, attribute.next)
       case attribute: PrefixedAttribute => attribute
-      case attribute: UnprefixedAttribute if attribute.key == nameAtrr => new UnprefixedAttribute(attribute.key, vale, attribute.next)
+      case attribute: UnprefixedAttribute if attribute.key == nameAtrr => new UnprefixedAttribute(attribute.key, vale, attribute.next);
       case attribute: UnprefixedAttribute => attribute
       case attribute: Attribute => attribute
 
     }).foldLeft(Agg(None))((a, b) => {
       a :+ b
     })
+
     val aa = nMeta.tail match {
-      case Some(value) => value
+      case Some(value) =>  value
       case None => n.attributes
 
     }
+
     n.copy(attributes = aa)
   }
   case class Agg(var tail: Option[MetaData]) {
 
     def :+(a: MetaData): Agg = {
-      if (tail != null) {
+      if (tail.isDefined) {
+
         tail = tail.map(_.copy(a))
       } else {
         tail = Some(a)
@@ -286,15 +338,8 @@ trait TemplatePhy {
     var current = 1
 
     def addCell(n: Elem): Grid[A] = {
-      def reworked = if (n.attribute("class").isDefined && !(n \@ "class" contains (" col")) && !(n \@ "class" contains ("col ")) && !(n \@ "class" contains ("col"))) {
-        updateAtttibute(n,"class",n \@ "class"+" col")
-      } else if (n.attribute("class").isEmpty) {
+      def reworked =  appendTokeyOrCreate(n,"class","col")
 
-        n.copy(attributes = n.attributes.copy(new UnprefixedAttribute("class", "col", n.attributes.last.next)))
-      } else {
-
-        n
-      }
 
       table.head += reworked
       current += 1
@@ -334,7 +379,6 @@ trait TemplatePhy {
   }
 
   def root: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="root">
-    {mainBag.xml()}
-
+    {mainBag.xml()}{movable.xml()}
   </div>)
 }

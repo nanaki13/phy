@@ -7,7 +7,9 @@ import scala.sys.process._
 enablePlugins(ScalaJSPlugin)
 val sharedSettings = Seq(version := "0.1.1-SNAPSHOT",
   organization := "bon.jo",
-  scalaVersion := "2.13.1")
+  scalaVersion := "2.13.1",
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.1" % "test"
+)
 name := "phy"
 // or any other Scala version >= 2.11.12
 

@@ -3,7 +3,7 @@ package bon.jo.phy
 import bon.jo.phy.Phy.A
 
 
-abstract sealed case class Interaction(name: String) {
+abstract sealed  class Interaction(val name: String) {
   def fillContext(on: PointDynamic,sourceInteraction: PointDynamic, caculContext: CaculContext): Unit = {
     caculContext.source = sourceInteraction
     val dir =  caculContext.source.p - on.p
@@ -55,6 +55,10 @@ abstract sealed case class Interaction(name: String) {
 
 object Interaction {
 
+  val all = List(Faible,Forte,Ressort)
+
+  def apply(name: String): Option[Interaction] = all.find(_.name == name)
+
   object Forte extends Interaction("Forte") {
     override def calculA(implicit ctx: CaculContext, e: CalculParam): A = {
 
@@ -63,11 +67,6 @@ object Interaction {
     }
   }
 
-  object Faible2 extends Interaction("Forte") {
-    override def calculA(implicit ctx: CaculContext, e: CalculParam): A = {
-      (ctx.pointToSource * ctx.source.m  * ctx.point.m) / ctx.dist
-    }
-  }
 
   object Faible extends Interaction("Faible") {
     override def calculA(implicit ctx: CaculContext, e: CalculParam): A = {

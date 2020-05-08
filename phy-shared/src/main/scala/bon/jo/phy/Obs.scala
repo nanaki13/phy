@@ -1,13 +1,24 @@
 package bon.jo.phy
 
 import scala.collection.mutable
+import scala.concurrent.{ExecutionContext, Future}
 
+
+trait ObsFact[A]{
+  def apply():  Obs[A]
+}
 trait Obs[A] {
   def suscribe(client: A => Unit): Unit
 
   def newValue(a: A): Unit
 
   def clearClients: Unit
+
+  def toFuture(implicit executionContext: ExecutionContext): Future[A] = {
+    val p2 = scala.concurrent.Promise[A]()
+    suscribe(p2.success)
+    p2.future
+  }
 }
 
 object Obs {

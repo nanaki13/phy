@@ -7,6 +7,7 @@ import scala.util.Random
 case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
   val `2PI`: Double = math.Pi * 2
 
+
   def doFundamentalPrincipleOfDynamics(on: PointDynamic)(implicit calculParam: CalculParam): Unit = {
     on.a = A()
     model.interactions.foreach(e => {

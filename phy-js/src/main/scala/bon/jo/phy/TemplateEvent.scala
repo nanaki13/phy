@@ -3,6 +3,8 @@ package bon.jo.phy
 import bon.jo.Logger
 import bon.jo.html.InDom
 import bon.jo.html.DomShell.ExtendedElement
+import bon.jo.html.cpnt.Download
+import bon.jo.phy.ImportExport.ModelExport
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.Purpose.{Delete, What}
 import bon.jo.phy.Purpose.What.Point
@@ -10,26 +12,32 @@ import bon.jo.phy.view.Shape.Circle
 import org.scalajs.dom.{CanvasRenderingContext2D, Event}
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html.{Div, Select}
+import EventContext._
+import org.scalajs.dom.raw.HTMLElement
+
+import scala.scalajs.js.JSON
 
 trait TemplateEvent extends TemplatePhy {
   ui : UI =>
   import params._
-  def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext): EventContext = {
+  def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext[ModelExport]): EventContext[ModelExport] = {
 
-    def apply[A](): Obs[A] = Obs.once[A]()
 
-    implicit val e: () => Obs[String] = apply _
 
 
     setUpHtml()
 
     org.scalajs.dom.document.body.appendChild(root.html())
     val unserInput = masseSoleilInput.me.UserCanUpdate()
+
     unserInput.suscribe(e => {
+
       eventsHandler.masseSolei.newValue(e.toDouble)
     })
 
 
+    def tr(p : Boolean): Unit = {val tracerString = if (p) "oui" else "non"
+    keepTail.me.innerText = s"tracter:$tracerString"}
 
     keepTail.me.clkOnce().suscribe(_ => {
       tracer = !tracer
@@ -37,7 +45,7 @@ trait TemplateEvent extends TemplatePhy {
       val tracerString = if (tracer) "oui" else "non"
       keepTail.me.innerText = s"tracter:$tracerString"
     })
-
+    eventsHandler.tracer.suscribe{tr}
     createPoint.me.clkOnce().suscribe(_ => {
       clickBehavhoir = (Purpose.Create, Purpose.What.Point)
       createPoint.me.innerText = "Clicker où mettre"
@@ -98,6 +106,11 @@ trait TemplateEvent extends TemplatePhy {
       correctionInput.me.innerText = if (correction) "Oui" else "Non"
       eventsHandler.correction.newValue(correction)
     })
+
+    save.me.clkOnce().suscribe(_ => {
+      eventsHandler.saveModel.newValue(())
+
+    })
     replacer.me.clkOnce().suscribe(_ => {
       eventsHandler.replaceAround.newValue(())
 
@@ -126,6 +139,11 @@ trait TemplateEvent extends TemplatePhy {
     planeteActionSubmit.addEventListener[Event]("click", _ => {
       eventsHandler.userWant.newValue(selectedPurpose)
     })
+    importModel.init(root.me)
+    importModel.obsInst.suscribe{
+      e =>
+        eventsHandler.modelImport.newValue(e)
+    }
 
     trait ObsViewUpdateText[E] {
       val obs: Obs[E]
@@ -198,7 +216,7 @@ trait TemplateEvent extends TemplatePhy {
           case Purpose.Move =>
           case Purpose.Delete => removePlaneteFromSelection()
           case Purpose.Create =>
-            scalajs.js.special.debugger()
+
             planeteIndex = addForChoice(i, planeteIndex, plneteSelection)
 
           case Purpose.Void =>
@@ -217,7 +235,25 @@ trait TemplateEvent extends TemplatePhy {
       case a@(_, Purpose.Void, _) => throw new IllegalStateException(a._1.toString)
     }
 
+    eventsHandler.modelForSave.suscribe{
+      e : ModelExport =>
+
+        addDownloadLinlk(JSON.stringify(e))
+    }
+
+
     eventsHandler
   }
 
+  def addDownloadLinlk(string: String) ={
+    val dl = Download("model.json",string)
+
+    if(!dl.isInDom){
+      dl.addTo(this.save.me.parentNode.asInstanceOf[HTMLElement])
+      dl.me.classList.add("col")
+    }else{
+      dl.updateLink(string)
+    }
+
+  }
 }

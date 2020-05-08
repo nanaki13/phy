@@ -10,7 +10,7 @@ import bon.jo.phy.view.ViewPort
 
 
 
-case class EventContext(
+case class EventContext[ExpType](
                          scaleTime: Obs[Double] = obs(),
                          masseSolei: Obs[Double] = obs(),
                          tracer: Obs[Boolean] = obs(),
@@ -32,7 +32,11 @@ case class EventContext(
                          opeationOnElementDone: Obs[(Purpose,Purpose.What,Int)] = obs(),
                          userChoice : Obs[(Purpose.What,Int)] = obs(),
                          userWant : Obs[Purpose]= obs(),
+                         saveModel : Obs[Unit]= obs(),
+                         modelForSave: Obs[ExpType] = obs[ExpType](),
+                         modelImport:   Obs[Model[_]] = obs[Model[_]]()
                        ) {
+
 
 
 }
@@ -40,4 +44,6 @@ case class EventContext(
 //UI
 object EventContext{
   def obs[T](): Obs[T] = Obs.once[T]().toMany
+
+  implicit def obsFact[A] : ObsFact[A] = () =>  EventContext.obs[A]()
 }
