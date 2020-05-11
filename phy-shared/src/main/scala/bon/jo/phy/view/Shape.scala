@@ -2,7 +2,7 @@ package bon.jo.phy.view
 
 object Shape {
 
-  case class Circle(r: Double) extends Shape {
+  case class Circle(var r: Double) extends Shape {
     def *(d: Double) = Circle(r * d)
 
   }

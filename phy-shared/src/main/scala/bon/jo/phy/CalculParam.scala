@@ -13,7 +13,7 @@ trait Param {
   var kRessort: Double
   var speedFactor: Double
 
-  var scleTime: Double
+  var scaleTime: Double
   var frt: Double
 
 
@@ -28,7 +28,7 @@ object CalculParam {
 
       e.kRessort,
       e.speedFactor,
-      e.scleTime,
+      e.scaleTime,
       e.frt,
       e.interaction,
       e.correction,

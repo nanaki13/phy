@@ -11,7 +11,8 @@ case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
   def doFundamentalPrincipleOfDynamics(on: PointDynamic)(implicit calculParam: CalculParam): Unit = {
     on.a = A()
     model.interactions.foreach(e => {
-      val (source, inter) = e
+      val PointInteraction(source, inter,tp) = e
+      caculContext.factor = tp.factor
       inter.fillContext(on, source, caculContext)
       on.a += inter.resultatForace/ on.m
 

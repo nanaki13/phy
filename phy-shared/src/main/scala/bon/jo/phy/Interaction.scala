@@ -4,6 +4,7 @@ import bon.jo.phy.Phy.A
 
 
 abstract sealed  class Interaction(val name: String) {
+
   def fillContext(on: PointDynamic,sourceInteraction: PointDynamic, caculContext: CaculContext): Unit = {
     caculContext.source = sourceInteraction
     val dir =  caculContext.source.p - on.p
@@ -41,8 +42,8 @@ abstract sealed  class Interaction(val name: String) {
 
 
   def resultatForace(implicit ctx: CaculContext, e: CalculParam): A = {
-    //  if (ctx.dist > e.rInf) {
-    val a = correction((calculA))
+
+    val a = correction(ctx.factor * calculA)
     if (e.frt != 0d) {
       a + new A(ctx.point.v * e.frt) //  } else {
     } else {

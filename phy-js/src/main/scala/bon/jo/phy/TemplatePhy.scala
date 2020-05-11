@@ -13,17 +13,17 @@ import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
 import scala.xml._
 import EventContext._
-import bon.jo.phy.ImportExport.ModelExport
+import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
+
 trait TemplatePhy {
 
 
-
   val params: UIParams
+
   import params._
 
 
-
-
+  val selection: Grid[String] = Grid[String]("selectino-cont", Grid.withLegend, "Sélection")
   val noneChoixString = "-"
   val NoneChoix: InDom[OptHtml] with XmlHtmlView[OptHtml] = optFromStringValue(noneChoixString)
 
@@ -33,12 +33,14 @@ trait TemplatePhy {
 
   def setUpHtml(): Unit = {
 
-    val crCont = Grid[String]("creation", Grid.withLegend,"Création")
+    val crCont = Grid[String]("creation", Grid.withLegend, "Création")
 
     var tmpGrid = Grid("prop-creation")
 
     tmpGrid.cellByRaw = 1
-    tmpGrid :+ bagName("masse : ", masseSoleilInput.xml()) :+ bagName("interaction:", interactionType.xml())
+    tmpGrid :+ bagName("masse : ", newElementMassseHtml.xml()) :+ bagName("interaction:", <div>
+      {interactionType.xml()}{interactionSelectionOppose.xml()}
+    </div>)
 
     crCont :+ tmpGrid
 
@@ -53,7 +55,7 @@ trait TemplatePhy {
 
     mainBag :+ crCont
 
-    val selection = Grid[String]("selectino-cont", Grid.withLegend,"Sélection")
+
     selection.cellByRaw = 3
     var b = bagName("Planètes :", chiocePlanete.xml())
     selection :+ b
@@ -70,7 +72,7 @@ trait TemplatePhy {
 
     mainBag :+ selection
 
-    val global = Grid("Global", Grid.withLegend,"Global")
+    val global = Grid("Global", Grid.withLegend, "Global")
     global.cellByRaw = 2
     b = bagName("temps * ", timeup.xml())
     global :+ b
@@ -81,10 +83,10 @@ trait TemplatePhy {
 
     global :+ comeBack :+ partirBack
     global :+ bagName("frotement:", frtOptionIn.xml()) :+ bagName("correction:", correctionInput.xml())
-    global :+ stabilise :+ replacer :+ save :+ importModel
+    global :+ stabilise :+ replacer :+ save :+ importModel :+ importExample
     mainBag :+ global
 
-    val drawProp = Grid("drwProp", Grid.withLegend,"Dessin")
+    val drawProp = Grid("drwProp", Grid.withLegend, "Dessin")
 
     drawProp :+ keepTail :+ effacer :+ bagName("taille:", sizeFactorInput.xml())
 
@@ -93,12 +95,10 @@ trait TemplatePhy {
     //  mainBag:+ bagName("interaction:", interactionType.xml())
 
 
-
-
-
   }
+
   protected lazy val movable: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="dyn-1" class="position-absolute mv" >
+    <div id="dyn-1" class="position-absolute mv">
       Je Dois bouger
     </div>
   })
@@ -109,9 +109,9 @@ trait TemplatePhy {
   })
   protected lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={width.toString} height={height.toString}></canvas>)
 
-  protected lazy val masseSoleilInput: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
+  protected lazy val newElementMassseHtml: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="in" class="in col">
-      {soleilMasse}
+      4000
     </div>
   })
 
@@ -146,7 +146,7 @@ trait TemplatePhy {
   })
   protected lazy val timeup: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="timeup" class="in">
-      {scleTime}
+      {scaleTime}
     </div>
   })
   protected lazy val correctionInput: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
@@ -163,6 +163,11 @@ trait TemplatePhy {
   protected lazy val interactionType: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="inter" class="in">
       {switchIneraction.head.name}
+    </div>
+  })
+  protected lazy val interactionSelectionOppose: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
+    <div id="inter-oppose" class="in">
+      {creationForceOppose.name}
     </div>
   })
   protected lazy val frtOptionIn: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
@@ -220,11 +225,13 @@ trait TemplatePhy {
   protected lazy val chioceInteraction: InDom[Div] with XmlHtmlView[Div] = doSelectHtml("interaction-div-sel", "inter-sel")
   protected lazy val interactionSelection: Select = $[Select]("inter-sel")
 
-  implicit val cv : js.Any => Model[PointDynamicColorCircle] = { e =>
-    ModelExport.unapply(e.asInstanceOf[ModelExport]).get
+  protected lazy val  importExample  = InDom[Div](<div id="importExample" class ="in">charger un exemple</div>)
+
+  implicit val cv: js.Any => ExportedElement = { e =>
+    ModelExport.unnaply(e.asInstanceOf[ModelExport]).get
   }
 
-  protected val importModel = new ReadImportFile[Model[PointDynamicColorCircle]]()
+  protected val importModel = new ReadImportFile[ExportedElement]()
 
   private def bagName(name: String, node: Node) = {
     <div class="col d-inline" id={name + "-id"}>
@@ -250,12 +257,16 @@ trait TemplatePhy {
 
     object withLegend extends Mode[String] {
       override def apply(node: Elem, legend: String): Node = {
-       node.copy(child =  <div class="border rounded m-1 p-1"><span class="legend">{legend}</span>{node.child}</div>)
+        node.copy(child = <div class="border rounded m-1 p-1">
+          <span class="legend">
+            {legend}
+          </span>{node.child}
+        </div>)
       }
     }
 
     object noMode extends Mode[Null] {
-      override def apply(node: Elem, legend: Null ): Node = node
+      override def apply(node: Elem, legend: Null): Node = node
     }
 
     def apply(id: String): Grid[Null] = () => GridPrams(noMode, id, null)
@@ -263,42 +274,43 @@ trait TemplatePhy {
     def apply[A](id: String, mode: Mode[A], param: A): Grid[A] = () => GridPrams(mode, id, param)
   }
 
-  case class GridPrams[A]( mode: Grid.Mode[A],  id: String,  modeParam: A )
+  case class GridPrams[A](mode: Grid.Mode[A], id: String, modeParam: A)
 
 
-  def appendToAttribute(n: Elem, nameAtrr : String, vale : String): Elem = {
-    updateAtttibute(n,nameAtrr,(n \@ nameAtrr) + vale)
+  def appendToAttribute(n: Elem, nameAtrr: String, vale: String): Elem = {
+    updateAtttibute(n, nameAtrr, (n \@ nameAtrr) + vale)
   }
 
-  def appendTokeyOrCreate(n: Elem, nameAtrr : String, vale : String,sep : Char = ' '): Elem = {
-    if(n.attribute(nameAtrr).isDefined && (n \@ nameAtrr).contains(vale)){
+  def appendTokeyOrCreate(n: Elem, nameAtrr: String, vale: String, sep: Char = ' '): Elem = {
+    if (n.attribute(nameAtrr).isDefined && (n \@ nameAtrr).contains(vale)) {
 
-      updateAtttibute(n,nameAtrr,(n \@ nameAtrr)+ sep + vale)
-    } else{
+      updateAtttibute(n, nameAtrr, (n \@ nameAtrr) + sep + vale)
+    } else {
 
-      if(n.attribute(nameAtrr).isDefined){
-        n.copy(attributes = n.attributes.map(e=> {
+      if (n.attribute(nameAtrr).isDefined) {
+        n.copy(attributes = n.attributes.map(e => {
           if (e.key == nameAtrr) {
-            atrTail(nameAtrr, vale,e.next)
+            atrTail(nameAtrr, vale, e.next)
           } else {
             e
           }
-        }).toList.head)}
-        else{
-        n.copy(attributes = MetaData.concatenate(n.attributes,atrTail(nameAtrr,vale,scala.xml.Null))
+        }).toList.head)
+      }
+      else {
+        n.copy(attributes = MetaData.concatenate(n.attributes, atrTail(nameAtrr, vale, scala.xml.Null))
         )
       }
     }
   }
 
 
+  def atrTail(name: String, valeur: String, n: MetaData) = new UnprefixedAttribute(name, valeur, n)
 
-  def atrTail(name : String,valeur : String,n : MetaData) = new UnprefixedAttribute(name,valeur,n)
-  def updateAtttibute(n: Elem, nameAtrr : String , vale : String): Elem = {
+  def updateAtttibute(n: Elem, nameAtrr: String, vale: String): Elem = {
     val nMeta = (n.attributes.map {
 
       case Null => Null
-      case attribute: PrefixedAttribute if attribute.key == nameAtrr  => new PrefixedAttribute(attribute.pre,attribute.key, vale, attribute.next)
+      case attribute: PrefixedAttribute if attribute.key == nameAtrr => new PrefixedAttribute(attribute.pre, attribute.key, vale, attribute.next)
       case attribute: PrefixedAttribute => attribute
       case attribute: UnprefixedAttribute if attribute.key == nameAtrr => new UnprefixedAttribute(attribute.key, vale, attribute.next);
       case attribute: UnprefixedAttribute => attribute
@@ -309,13 +321,14 @@ trait TemplatePhy {
     })
 
     val aa = nMeta.tail match {
-      case Some(value) =>  value
+      case Some(value) => value
       case None => n.attributes
 
     }
 
     n.copy(attributes = aa)
   }
+
   case class Agg(var tail: Option[MetaData]) {
 
     def :+(a: MetaData): Agg = {
@@ -328,17 +341,17 @@ trait TemplatePhy {
       this
     }
   }
+
   trait Grid[A] extends FinalComponent[Div] with (() => GridPrams[A]) {
 
     val GridPrams(mode, id, param): GridPrams[A] = apply()
-
 
 
     var cellByRaw = 5
     var current = 1
 
     def addCell(n: Elem): Grid[A] = {
-      def reworked =  appendTokeyOrCreate(n,"class","col")
+      def reworked = appendTokeyOrCreate(n, "class", "col")
 
 
       table.head += reworked
@@ -360,10 +373,11 @@ trait TemplatePhy {
 
     override def xml(): Node = {
       def rows: List[Elem] = for {r <- table.reverse} yield {
-         <div class="row">
+        <div class="row">
           {Group(r)}
         </div>
       }
+
       mode(<div id={id}>
         {Group(rows)}
       </div>, param)
@@ -374,8 +388,9 @@ trait TemplatePhy {
   }
 
   type SimpleGrid = Grid[Null]
+
   private object mainBag extends SimpleGrid {
-    override def apply():GridPrams[Null] = GridPrams[Null](Grid.noMode, "main-gr",null)
+    override def apply(): GridPrams[Null] = GridPrams[Null](Grid.noMode, "main-gr", null)
   }
 
   def root: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="root">

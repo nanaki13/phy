@@ -7,7 +7,7 @@ case class CaculContext(var point: PointDynamic = null,
                         var source: PointDynamic = null,
                         var distCarre: Double = 0,
                         var dist: Double = 0,
-
+                        var factor : Double = 1d
                        ) {
   def rSup = Math.sqrt(Math.sqrt(source.m)) * 1000
 

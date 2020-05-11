@@ -16,10 +16,28 @@ object Purpose {
   val all = List(PlanetTarget,Move,Delete,Create,Void)
   object What{
     case object Point extends What
-    case object Interaction extends What
+    case object Interaction extends What{
+      object Type{
+        def apply(s : String): Type = all(s)
+      }
+      sealed trait Type{
+        def name : String
+        def  factor : Double
+        def unary_! : Type = {
+          this match {
+            case Attractive => Repulsive
+            case Repulsive => Attractive
+          }
+        }
+      }
+      case object Attractive extends Named("Attractive",1D)  with Type
+      case object Repulsive extends Named("Repulsive",-1D)  with Type
+      val all: Map[String,Type] = List[Type](Attractive,Repulsive).map {e => (e.name,e)}.toMap
+    }
 
   }
   sealed trait  What
+  abstract class Named(val name : String,val factor : Double)
 }
 
-sealed  class Purpose
+sealed  trait Purpose

@@ -1,9 +1,10 @@
 package bon.jo.phy
 
 import bon.jo.Logger
-import bon.jo.phy.ImportExport.ModelExport
+import bon.jo.phy.ImportExport.{ExportedElement, ModelExport, PDExport}
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.Purpose.What
+import bon.jo.phy.Purpose.What.Interaction.Attractive
 import bon.jo.phy.view.Shape.Circle
 import bon.jo.phy.view.{Drawer, DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
 import org.scalajs.dom.CanvasRenderingContext2D
@@ -44,48 +45,41 @@ object MainGalaxy extends App {
   }
 
 
-  def drawFirst()(implicit ctx: CanvasRenderingContext2D, uIParams: UIParams, model: Model[_]): Unit = {
-    import uIParams._
-    implicit val s: Double = sizeFactor
-    model.interactions.foreach { soleilEl =>
-      val centreForce: PointDynamicColor[Shape] = soleilEl._1.asInstanceOf[PointDynamicColor[Shape]]
-      ctx.fillStyle = uIParams.maskColor
-      centreForce.mask
-      centreForce.draw
-    }
-  }
-
   var keyFrame: Long = 0
 
   def calculAndDraw(calculParam: CalculParam)(implicit ctx: CanvasRenderingContext2D
                                               , calculateur: Calculateur[PointDynamicColorCircle]
                                               , uiParam: UIParams
-                                              , UI: UI
-                                              , eventContext: EventContext[ModelExport]): Unit = {
+                                              , ui: UI
+                                              , eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
     implicit val s: Double = uiParam.sizeFactor
 
 
-    val sgn = if (calculParam.scleTime > 0) 1 else -1
+    val sgn = if (calculParam.scaleTime > 0) 1 else -1
     val dtt = sgn * dt
-    val intPos = sgn * calculParam.scleTime.toInt
-    val pCam = UI.camera.p
+    val intPos = sgn * calculParam.scaleTime.toInt
+    val pCam = ui.camera.p
     calculParam.dt = dtt
     if (keyFrame < 6001) {
       val b = calculParam.frt
       calculParam.frt = -0.1
-      UI.uiCalulateur.model.points.foreach(p => UI.uiCalulateur.calculnextPosition(p, calculParam))
+      ui.uiCalulateur.model.points.foreach(p => ui.uiCalulateur.calculnextPosition(p, calculParam))
       calculParam.frt = b
       keyFrame += 1
       if (keyFrame == 6000) {
-        UI.uiCalulateur.model.interactions = Nil
-        UI.removeAnimable()
+        ui.uiCalulateur.model.interactions = Nil
+        ui.removeAnimable()
       } else if (keyFrame == 6000) {
-        UI.removeAnimable()
+        ui.removeAnimable()
       }
-      UI.newPositionModel()
+      ui.newPositionModel()
     }
 
-
+    calculateur.model.interactions.foreach { soleilEl =>
+      val centreForce = soleilEl.p
+      ctx.fillStyle = uiParam.maskColor
+      centreForce.mask
+    }
     calculateur.model.points.foreach(e => {
       if (!uiParam.tracer) {
         ctx.fillStyle = uiParam.maskColor
@@ -104,23 +98,25 @@ object MainGalaxy extends App {
       t += 1
     })
 
-    if (pCam != UI.camera.p) {
-      UI.goTo(pCam)
+    if (pCam != ui.camera.p) {
+      ui.goTo(pCam)
     }
-    calculateur.model.points.foreach(e => e.draw)
+    calculateur.model.points.foreach(_.draw)
+    calculateur.model.interactions.foreach(_.p.draw)
+    ui.drawScreenLeftBottm()
   }
 
 
-  def linkParam(calculParam: CalculParam)(implicit ui: UI, eventContext: EventContext[ModelExport]) = {
+  def linkParam(calculParam: CalculParam)(implicit ui: UI, eventContext: EventContext[ModelExport, ExportedElement]) = {
     eventContext.correction.suscribe(calculParam.correction = _)
     //   eventContext.action.suscribe(calculParam.correction = _)
     eventContext.frotement.suscribe(calculParam.frt = _)
     eventContext.ineraction.suscribe(calculParam.interaction = _)
-    //  eventContext.masseSolei.suscribe(calculParam.soleilMasse = _)
-    eventContext.scaleTime.suscribe(calculParam.scleTime = _)
+    //eventContext.newElemtsMasse.suscribe(calculParam.newElemtsMasse = _)
+    eventContext.scaleTime.suscribe(calculParam.scaleTime = _)
     calculParam.kRessort = 1
     eventContext.speedFactor.suscribe(calculParam.speedFactor = _)
-
+    eventContext.sizeFactor.suscribe(ui.params.sizeFactor = _)
   }
 
   def stopCamera(oldCamera: PointDynamic) = PointDynamic(oldCamera.p.copy(), V(), A(), 0)
@@ -129,22 +125,28 @@ object MainGalaxy extends App {
                                            ui: UI,
                                            uIParams: UIParams,
                                            ctx: CanvasRenderingContext2D,
-                                           eventContext: EventContext[ModelExport], model: Model[PointDynamicColorCircle]) = {
+                                           eventContext: EventContext[ModelExport, ExportedElement], model: Model[PointDynamicColorCircle]) = {
     implicit val s = uIParams.sizeFactor
     eventContext.action.suscribe {
-      case ActionPointDynamic(pdy, Purpose.Create, Purpose.What.Interaction) =>
-        pdy match {
-          case impl: PointDynamicColorCircle => {
-            model.interactions = model.interactions :+ (impl, calculParam.interaction)
-            eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Interaction, model.interactions.size - 1))
-          }
-          case _ =>
-        }
-      case ActionPointDynamic(pdy, Purpose.Create, Purpose.What.Point) =>
+      case ActionPointDynamicParam(pdy: PointDynamic, Purpose.Create, Purpose.What.Interaction, Some(forceType: What.Interaction.Type)) =>
         pdy match {
           case impl: PointDynamicColorCircle => {
             val p = rdPointDynamic
             p.p = impl.p
+            p.m = impl.m
+            model.interactions = model.interactions :+ PointInteraction(p, calculParam.interaction, forceType)
+            eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Interaction, model.interactions.size - 1))
+          }
+          case _ =>
+        }
+      case ActionPointDynamicNoParam(pdy, Purpose.Create, Purpose.What.Point) =>
+        pdy match {
+          case impl: PointDynamicColorCircle => {
+
+            val p = rdPointDynamic
+            p.p = impl.p
+            p.m = impl.m
+
             model.points = model.points :+ p
             eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Point, model.points.size - 1))
           }
@@ -153,38 +155,62 @@ object MainGalaxy extends App {
 
       case _ =>
     }
-    eventContext.actionPoint.suscribe(action => {
-      action.what match {
-        //  case Purpose.PutSun =>
-        case Purpose.PlanetTarget =>
-        case Purpose.Move => {
-          selectedIndexPlanete = (Purpose.Void, -1)
-          ui.goTo(action.p);
-          ui.camera = PointDynamic(action.p)
-        }
-        case _ =>
-      }
-    })
+    //    eventContext.actionPoint.suscribe(action => {
+    //      action.what match {
+    //        //  case Purpose.PutSun =>
+    //        case Purpose.PlanetTarget =>
+    //        case Purpose.Move => {
+    //          selectedIndexPlanete = (Purpose.Void, -1)
+    //          ui.goTo(action.p);
+    //          ui.camera = PointDynamic(action.p)
+    //        }
+    //        case _ =>
+    //      }
+    //    })
     eventContext.speedFactor.suscribe(calculateur.applyV)
     eventContext.stabilise.suscribe(calculateur.stab)
 
     eventContext.pushPull.suscribe(e => if (e) calculateur.push else calculateur.pull)
-    eventContext.viewPort.suscribe(viewPort = _)
+    eventContext.viewPort.suscribe(e => viewPort = e.value)
     eventContext.replaceAround.suscribe(e => {
       ui.clear
-      calculateur.replaceAround(model.interactions.head._1.p, viewPort.w.x / 4, 0)
+      calculateur.replaceAround(model.interactions.head.p.p, viewPort.w.x / 4, 0)
     })
     eventContext.userChoice.suscribe {
       case (Purpose.Void, _) =>
       case e@(what, i) => ui.clear
-        what match {
-          case Purpose.Void =>
-          case What.Point => ui.follow(model.points(i))
-          case What.Interaction => ui.camera = stopCamera(ui.camera); ui.goTo(model.interactions(i)._1.p)
-        }
+        eventContext.selectionCtrlToUi.newValue(what match {
+          case Purpose.Void => NoneSelection
+          case What.Point => val a = model.points(i); ui.follow(a); Logger.log("before send ui : " + a.m); PlaneteSelectionCust(Some(new PointDynamicColorCircle(a)))
+          case What.Interaction => val a = model.interactions(i); ui.camera = stopCamera(ui.camera); ui.goTo(a.p.p); InteractionSelectionCust(Some(a.copy(new PointDynamicColorCircle(a.p),a.interaction)))
+        })
+
         selectedIndexPlanete = e
 
     }
+
+    def modify(mod: PointDynamicColorCircle, from: PointDynamicColorCircle) = {
+      mod.m = from.m
+      mod.shape.r = from.shape.r
+    }
+
+    eventContext.selectionUpdateUiToCtrl.suscribe {
+      case s @ InteractionSelectionCust(Some(selected)) => {
+
+        val mod = model.interactions(selectedIndexPlanete._2)
+        modify(mod.p, selected.p)
+        if(selected.interaction != mod.interaction){
+          mod.interaction = selected.interaction
+        }
+      }
+      case NoneSelection =>
+      case PlaneteSelectionCust(Some(selected)) =>
+        val mod = model.points(selectedIndexPlanete._2)
+        modify(mod, selected)
+        Logger.log(PDExport(model.points(selectedIndexPlanete._2)))
+      case _ =>
+    }
+
     eventContext.clean.suscribe(_ => ui.clear)
 
     eventContext.userWant.suscribe {
@@ -202,7 +228,7 @@ object MainGalaxy extends App {
 
           case (Purpose.What.Interaction, i) =>
             ctx.fillStyle = uIParams.maskColor
-            model.interactions.zipWithIndex.find(_._2 == i).get._1._1.mask
+            model.interactions.zipWithIndex.find(_._2 == i).get._1.p.mask
             ui.camera = stopCamera(ui.camera)
             model.interactions = model.interactions.zipWithIndex.filter(_._2 != i).map(_._1)
             eventContext.opeationOnElementDone.newValue((Purpose.Delete, selectedIndexPlanete._1, selectedIndexPlanete._2))
@@ -216,31 +242,31 @@ object MainGalaxy extends App {
     }
     eventContext.saveModel.suscribe { _ =>
       eventContext.modelForSave.newValue {
-        ImportExport.exporeModel(model)
+        ImportExport.exporeModel(model, viewPort,uIParams)
       }
     }
 
     eventContext.modelImport.suscribe { newModel =>
-      val m = newModel.asInstanceOf[Model[PointDynamicColorCircle]]
+      val m = newModel
       model.interactions.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Delete,Purpose.What.Interaction,0)
+        eventContext.opeationOnElementDone.newValue(Purpose.Delete, Purpose.What.Interaction, 0)
       })
 
 
       model.points.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Delete,Purpose.What.Point,0)
+        eventContext.opeationOnElementDone.newValue(Purpose.Delete, Purpose.What.Point, 0)
       })
 
-      model.interactions = m.interactions
-      model.points = m.points
-
+      model.interactions = m.model.interactions
+      model.points = m.model.points
+      eventContext.viewPort.newValue(EmittedValue(m.viewPort, Source.Ctrl))
+      eventContext.uiParams.newValue(EmittedValue(m.uiParams, Source.Ctrl))
       model.interactions.zipWithIndex.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Create,Purpose.What.Interaction,e._2)
+        eventContext.opeationOnElementDone.newValue(Purpose.Create, Purpose.What.Interaction, e._2)
       })
       model.points.zipWithIndex.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Create,Purpose.What.Point,e._2)
+        eventContext.opeationOnElementDone.newValue(Purpose.Create, Purpose.What.Point, e._2)
       })
-
 
     }
     eventContext
@@ -254,15 +280,13 @@ object MainGalaxy extends App {
 
     implicit val uiParams: UIParams = UIParams()
     implicit val ui: UI = UI()
-    implicit val eventContext: EventContext[ModelExport] = EventContext[ModelExport]()
+    implicit val eventContext: EventContext[ModelExport, ExportedElement] = EventContext[ModelExport, ExportedElement]()
     implicit val ctx: CanvasRenderingContext2D = ui.getCtx2D
 
     implicit val sf: Double = 1
 
     ui.initView()
-    // physical repère
-    ctx.transform(1, 0, 0, -1, 1, 1)
-    ctx.translate(0, -uiParams.height)
+
 
     implicit val m: Model[PointDynamicColorCircle] = Model[PointDynamicColorCircle](Nil, Nil)
     implicit val calculParam: CalculParam = CalculParam(uiParams)
@@ -270,25 +294,16 @@ object MainGalaxy extends App {
     implicit val calcul: Calculateur[PointDynamicColorCircle] = Calculateur(m)
     linkParam(calculParam)
     linkAction(calculParam)
-    eventContext.viewPort.newValue(ui.viewPort)
+    eventContext.viewPort.newValue(EmittedValue(ui.viewPort, Source.Ctrl))
 
-
-    // org.scalajs.dom.window.addEventListener[KeyboardEvent]("keyup", hadleKeyB)
     mainAnim = scalajs.js.timers.setInterval(delataTFrame)({
-      drawFirst()
+
 
       calculAndDraw(calculParam)
       if (calcul.haveToStab) {
         eventContext.stabilise.newValue(false)
       }
-      //      if (m.points.length < 20 && initPhase) {
-      //        if (Random.nextDouble() > 0.85) {
-      //          m.points = m.points :+ rdPointDynamic
-      //          eventContext.opeationOnElementDone.newValue(Purpose.Create,Purpose.What.Point, m.points.size -1)
-      //        }
-      //      }else{
-      //        initPhase = false
-      //      }
+
 
     })
 
@@ -314,10 +329,14 @@ object MainGalaxy extends App {
   go()
 }
 
-case class PointDynamicColorCircle(mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), colorIni: Color, shapeIni: Circle) extends PointDynamicColor[Circle](mIni, pIni, vIni, aIni, colorIni, shapeIni) {
+class PointDynamicColorCircle(mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), val colorIni: Color, val shapeIni: Circle) extends PointDynamicColor[Circle](mIni, pIni, vIni, aIni, colorIni, shapeIni) {
   override def mask(implicit tx: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
 
     drawFill[Circle](this.shape * 1.2F, p)
+  }
+
+  def this(p: PointDynamicColorCircle) {
+    this(p.m, p.p.copy(), p.v.copy(), p.a.copy(), p.c, p.shape.copy())
   }
 
   def toJs = null
