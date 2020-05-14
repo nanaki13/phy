@@ -9,11 +9,12 @@ object Purpose {
 
   case object Move extends Purpose
   case object Delete extends Purpose
+  case object DontFollow extends Purpose
   case object Create extends Purpose
   case object Void extends Purpose with What
   def apply(puport : String): Purpose = all.find(_.toString == puport).get
 
-  val all = List(PlanetTarget,Move,Delete,Create,Void)
+  val all = List(PlanetTarget,Move,Delete,Create,Void,DontFollow)
   object What{
     case object Point extends What
     case object Interaction extends What{

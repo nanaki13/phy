@@ -1,6 +1,7 @@
 package bon.jo.phy
 
 import bon.jo.Logger
+import bon.jo.Logger.Conf
 import bon.jo.html.DomShell.ExtendedElement
 import bon.jo.html.InDom
 import bon.jo.phy.ImportExport.{ExportedElement, ModelExport, PointExport}
@@ -8,11 +9,13 @@ import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.view.DrawerJS._
 import bon.jo.phy.view.Shape.Circle
 import bon.jo.phy.view.{DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
-import org.scalajs.dom.CanvasRenderingContext2D
+import org.scalajs.dom.{CanvasRenderingContext2D, raw}
 import org.scalajs.dom.html.{Div, Select}
 import org.scalajs.dom.raw.KeyboardEvent
 
 case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEvent {
+  def clearIfNoKeepTail(implicit canvasRenderingContext2D: CanvasRenderingContext2D): Unit = if (!uIParams.tracer) clear
+
   def removeAnimable(): Unit = {
     movable.removeFromView()
   }
@@ -30,13 +33,13 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
 
   import params._
 
-  val positionDybCala = new Calculateur[PointDynamic](new Model[PointDynamic](Nil, PointInteraction(PointDynamic(P(uIParams.width / 2, uIParams.height / 2)), Interaction.Ressort) :: Nil))
-  positionDybCala.model.points = PointDynamic(P(uIParams.width / 2 - 100, uIParams.height / 2 - 100), V(50, 0)) :: Nil
+  val positionDybCala = new Calculateur[PointDynamic](new Model[PointDynamic](Nil, PointInteraction(PointDynamic(viewPort.middle), Interaction.Ressort) :: Nil))
+  positionDybCala.model.points = PointDynamic(viewPort.middle - P(100, 100), V(50, 0)) :: Nil
 
 
   def uiCalulateur: Calculateur[PointDynamic] = positionDybCala
 
-  var camera: PointDynamic = PointDynamic(P(uIParams.width / 2, uIParams.height / 2), V(), A(), 0)
+  var camera: PointDynamic = PointDynamic(viewPort.middle, V(), A(), 0)
 
   def follow(value: PointDynamicColor[_ <: Shape])(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
 
@@ -45,14 +48,12 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
   }
 
 
-  var viewPort: ViewPort = view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale))
-
   def clear(implicit ctx: CanvasRenderingContext2D): Unit = {
 
     ctx.fillStyle = maskColor
     ctx.fillRect(viewPort.leftBottm.x, viewPort.leftBottm.y, viewPort.w.x, viewPort.h.y)
-    //    ctx.strokeStyle = "black"
-    //    ctx.strokeRect(viewPort.leftBottm.x, viewPort.leftBottm.y, (viewPort.w.x - 5), (viewPort.h.y - 5))
+    ctx.strokeStyle = "black"
+    ctx.strokeRect(viewPort.leftBottm.x, viewPort.leftBottm.y, (viewPort.w.x - 5), (viewPort.h.y - 5))
   }
 
 
@@ -60,13 +61,14 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
     addHtmlAndEvent
   }
 
-  def goTo(dest: P)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
-
-    val current = P(minViewX + (width / 2) / scale, minViewY + (height / 2) / scale)
+  def goTo(dest: P)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement], UIParams: UIParams): Unit = {
+    val current = viewPort.middle
     val p = dest - current
+    if (!uIParams.tracer) {
+      clear
+    }
     ctx.translate(-p.x, -p.y)
-    minViewX = minViewX + p.x
-    minViewY = minViewY + p.y
+    viewPort = viewPort.copy(leftBottm = viewPort.leftBottm + p)
     sendVP
 
   }
@@ -86,16 +88,21 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
   }
 
   def drawScreenLeftBottm() = {
-    ct.fillStyle = "black"
-    DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.h)(ct, 1)
-    ct.fillStyle = "red"
-    DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.w)(ct, 1)
-    ct.fillStyle = "blue"
-    DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.w + viewPort.h)(ct, 1)
-    ct.fillStyle = "green"
-    DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm)(ct, 1)
-    ct.fillStyle = "green"
-  //  ct.fillRect(viewPort.leftBottm.x + 40, viewPort.leftBottm.y + 40, viewPort.w.x - 40, viewPort.h.y - 40)
+    if(!Conf.prod){
+      ct.fillStyle = "black"
+      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.h)(ct, 1)
+      ct.fillStyle = "red"
+      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.w)(ct, 1)
+      ct.fillStyle = "blue"
+      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.w + viewPort.h)(ct, 1)
+      ct.fillStyle = "green"
+      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm)(ct, 1)
+      ct.fillStyle = "yellow"
+      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.middle)(ct, 1)
+    }
+
+
+    //  ct.fillRect(viewPort.leftBottm.x + 40, viewPort.leftBottm.y + 40, viewPort.w.x - 40, viewPort.h.y - 40)
     //Logger.log(PointExport(viewPort.leftBottm))
   }
 
@@ -127,90 +134,89 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
     interactionIndex.foreach(e => interactionSelection.appendChild(optFromStringValue(e).html()))
   }
 
-  def dw(implicit uIParams: UIParams): Double = -uIParams.width / 4d
+  def dw: Double = -viewPort.w.x / 4d
+type ctxGlb = (CanvasRenderingContext2D,  EventContext[ModelExport, ExportedElement])
+  def zoom( ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
+    val midel = viewPort.middle
+    val depl = (viewPort.leftBottm - midel) * 0.1
+    ctx.scale(1.1, 1.1)
+    ctx.translate(depl.x, depl.y)
+    viewPort = viewPort.copy(scale = viewPort.scale * 1.1
+      , leftBottm = ((viewPort.leftBottm) / 1.1) - depl
+      , w = viewPort.w / 1.1, h = viewPort.h / 1.1)
+    sendVP(eventContext)
+  }
+  def unzoom( ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
+    val midel = viewPort.middle
 
-  def dh(implicit uIParams: UIParams): Double = -uIParams.height / 4d
+    val depl = -(viewPort.leftBottm - midel) * 0.1
+    ctx.scale(0.9, 0.9)
+    ctx.translate(depl.x, depl.y)
+    viewPort = viewPort.copy(scale = viewPort.scale * 0.9
+      , leftBottm = ((viewPort.leftBottm) / 0.9) - depl
+      , w = viewPort.w / 0.9, h = viewPort.h / 0.9)
+    sendVP(eventContext)
+  }
+  def right(ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
+    val v = dw
+    viewPort = viewPort.copy(leftBottm = viewPort.leftBottm + P(v))
+    ctx.translate(-v, 0)
+    sendVP(eventContext)
+  }
+  def left(ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit  = {
 
-  def hadleKeyB(e: KeyboardEvent)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement], uIParams: UIParams): Unit = {
+    val v = dw
+    viewPort = viewPort.copy(leftBottm = viewPort.leftBottm - P(v))
+    ctx.translate(v, 0)
+    sendVP(eventContext)
+  }
+  def down(ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit  = {
+    val v = dh
+    viewPort = viewPort.copy(leftBottm = viewPort.leftBottm - P(0, v))
+    ctx.translate(0, +v)
+    sendVP(eventContext)
+  }
+  def up(ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit  = {
+    val v = dh
+    viewPort = viewPort.copy(leftBottm = viewPort.leftBottm + P(0, v))
+    ctx.translate(0, -v)
+    sendVP(eventContext)
+  }
+  def sizeUp(ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit  = {
+    sizeFactor *= 1.1
+    eventContext.sizeFactor.newValue(sizeFactor)
+  }
+  def sizeDown(ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit  = {
+    sizeFactor *= 0.9
+    eventContext.sizeFactor.newValue(sizeFactor)
+  }
+  def dh: Double = -viewPort.h.y / 4d
+  val keysMapProcess : Map[String, ctxGlb => Unit] = Map(
+    "+" -> zoom _,
+    "-" -> unzoom _,
+    "d" -> right _,
+    "q" -> left _,
+    "s" -> down _,
+    "z" -> up _,
+    "p" ->  sizeUp _,
+    "m" -> sizeDown _
+  ).view.mapValues( e => e.tupled).toMap
 
 
-    import uIParams._
-    val keysMapProcess = Map(
-      "+" -> (() => {
-
-        ctx.translate((width / 2) * scale, (height / 2) * scale)
-        minViewX -= (width / 2) * scale
-        minViewY -= (height / 2) * scale
-        scale = scale * 1.1
-        minViewX /= 1.1
-        minViewY /= 1.1
-        ctx.scale(1.1, 1.1)
-        ctx.translate(-(width / 2) * scale, -(height / 2) * scale)
-        minViewX += (width / 2) * scale
-        minViewY += (height / 2) * scale
-        sendVP
-
-      }), "-" -> (() => {
-
-
-        ctx.translate((width / 2) * scale, (height / 2) * scale)
-        minViewX -= (width / 2) * scale
-        minViewY -= (height / 2) * scale
-        scale = scale * 0.9
-        minViewX /= 0.9
-        minViewY /= 0.9
-        minViewX += (width / 2) * scale
-        minViewY += (height / 2) * scale
-        ctx.scale(0.9, 0.9)
-        ctx.translate(-(width / 2) * scale, -(height / 2) * scale)
-        sendVP
-
-      }), "d" -> (() => {
-        val v = dw
-        minViewX += v
-        ctx.translate(-v, 0)
-        sendVP
-      }), "q" -> (() => {
-        val v = dw
-        minViewX -= v
-        ctx.translate(v, 0)
-        sendVP
-      }), "z" -> (() => {
-        val v = dh
-        minViewY += v
-        ctx.translate(0, -v)
-        sendVP
-      }), "s" -> (() => {
-        val v = dh
-        minViewY -= v
-        ctx.translate(0, v)
-        sendVP
-      }), "p" -> (() => {
-        sizeFactor *= 1.1
-        eventContext.sizeFactor.newValue(sizeFactor)
-      }), "m" -> (() => {
-        sizeFactor *= 0.9
-        eventContext.sizeFactor.newValue(sizeFactor)
-      })
-    )
+  def hadleKeyB(e: KeyboardEvent)(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
 
     keysMapProcess.get(e.key).map(e => {
       clear
-      e()
+      e(ctx,eventContext)
       true
     }).foreach(_ => {
-
       clear
     })
-    eventContext.viewPort.suscribe(vEm => {
-      val v = vEm.value
-      CircleDraw.drawFill(Circle(50), v.leftBottm + P(v.w.x / 2, v.h.y / 2))(ctx, 1)
-      this.viewPort = v
-    })
+
 
   }
 
-  def sendVP(implicit eventContext: EventContext[_, _]): Unit = eventContext.viewPort.newValue(EmittedValue(view.ViewPort(scale, P(minViewX, minViewY), V(width / scale), V(0, height / scale)), Source.UI))
+  def sendVP(implicit eventContext: EventContext[_, _]): Unit = eventContext.viewPort.newValue(EmittedValue(viewPort, Source.UI))
 
 }
 

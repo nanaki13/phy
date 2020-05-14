@@ -6,14 +6,14 @@ import bon.jo.html.DomShell.{$, ExtendedElement}
 import bon.jo.html.cpnt.Download
 import bon.jo.phy.ImportExport.{ExportedElement, ModelExport, PointExport}
 import bon.jo.phy.Phy.{A, P, V}
-import bon.jo.phy.Purpose.{Delete, What}
+import bon.jo.phy.Purpose.{Delete, Move, What}
 import bon.jo.phy.Purpose.What.Point
 import bon.jo.phy.view.Shape.Circle
 import org.scalajs.dom.{CanvasRenderingContext2D, Event}
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html.{Div, Select}
 import EventContext._
-import bon.jo.phy.view.DrawerJS
+import bon.jo.phy.view.{DrawerJS, UIParams}
 import org.scalajs.dom.raw.HTMLElement
 
 import scala.scalajs.js.JSON
@@ -51,14 +51,16 @@ trait TemplateEvent extends TemplatePhy {
       sele.removeFromView()
     }
     selection.me.appendChild(sele.html())
-    $[Div]("selected-inter").clkOnce().suscribe{
+    $[Div]("selected-inter").clkOnce().suscribe {
       e =>
         val nextInter: Interaction = params.switchIneraction
           .zipWithIndex
           .map(e =>
-            (e._1,if(e._2 != params.switchIneraction.size - 1){
-              params.switchIneraction(e._2 + 1)}else{
-              params.switchIneraction.head},e._2))
+            (e._1, if (e._2 != params.switchIneraction.size - 1) {
+              params.switchIneraction(e._2 + 1)
+            } else {
+              params.switchIneraction.head
+            }, e._2))
           .find(_._1 == selected.interaction).get._2
         $[Div]("selected-inter").innerText = nextInter.name
         selected.interaction = nextInter
@@ -111,6 +113,7 @@ trait TemplateEvent extends TemplatePhy {
     })
   }
 
+
   def addHtmlAndEvent(implicit ctx: CanvasRenderingContext2D, eventsHandler: EventContext[ModelExport, ExportedElement]): EventContext[ModelExport, ExportedElement] = {
 
 
@@ -123,7 +126,7 @@ trait TemplateEvent extends TemplatePhy {
 
       eventsHandler.newElemtsMasse.newValue(e.toDouble)
     })
-    eventsHandler.newElemtsMasse.suscribe{ v =>
+    eventsHandler.newElemtsMasse.suscribe { v =>
       newElemtsMasse = v
     }
 
@@ -160,14 +163,14 @@ trait TemplateEvent extends TemplatePhy {
 
 
     pMas.clkOnce().suscribe(_ => {
-//TODO   varier la selction ou tous si pas de sel    faire vai
-//      soleilMasse *= 1.1
-//      eventsHandler.soleilMasse.newValue(soleilMasse)
+      //TODO   varier la selction ou tous si pas de sel    faire vai
+      //      soleilMasse *= 1.1
+      //      eventsHandler.soleilMasse.newValue(soleilMasse)
       newElementMassseHtml.me.innerText = newElemtsMasse.toString
     })
     mMas.clkOnce().suscribe(_ => {
-//      soleilMasse *= 0.9
-//      eventsHandler.soleilMasse.newValue(soleilMasse)
+      //      soleilMasse *= 0.9
+      //      eventsHandler.soleilMasse.newValue(soleilMasse)
       newElementMassseHtml.me.innerText = newElemtsMasse.toString
     })
 
@@ -214,10 +217,14 @@ trait TemplateEvent extends TemplatePhy {
       eventsHandler.replaceAround.newValue(())
 
     })
+    var currentSelectionWhat: Purpose.What = Purpose.Void
     plneteSelection.addEventListener[Event]("change", e => {
       val choiXtring = e.target.asInstanceOf[Select].value
       if (choiXtring != noneChoixString) {
+        currentSelectionWhat = Purpose.What.Point
         eventsHandler.userChoice.newValue((Purpose.What.Point, choiXtring.toInt))
+      } else {
+        currentSelectionWhat = Purpose.Void
       }
 
     })
@@ -225,7 +232,10 @@ trait TemplateEvent extends TemplatePhy {
     interactionSelection.addEventListener[Event]("change", e => {
       val choiXtring = e.target.asInstanceOf[Select].value
       if (choiXtring != noneChoixString) {
+        currentSelectionWhat = Purpose.What.Interaction
         eventsHandler.userChoice.newValue((Purpose.What.Interaction, choiXtring.toInt))
+      } else {
+        currentSelectionWhat = Purpose.Void
       }
     })
 
@@ -234,6 +244,13 @@ trait TemplateEvent extends TemplatePhy {
     planeteActionRef.addEventListener[Event]("change", _ => {
       Logger.log(planeteActionRef.value)
       selectedPurpose = Purpose(planeteActionRef.value)
+      if (selectedPurpose == Move) {
+        clickBehavhoir = (Purpose.Move, currentSelectionWhat)
+        planeteActionSubmit.innerText = "Clicker sur la destination"
+      } else {
+        clickBehavhoir = (Purpose.Void, currentSelectionWhat)
+        planeteActionSubmit.innerText = "Appliquer"
+      }
     })
     planeteActionSubmit.addEventListener[Event]("click", _ => {
       eventsHandler.userWant.newValue(selectedPurpose)
@@ -243,10 +260,15 @@ trait TemplateEvent extends TemplatePhy {
       e =>
         eventsHandler.modelImport.newValue(e)
     }
-    importExample.me.clkOnce.suscribe{_ => {
+    importExample.me.clkOnce.suscribe { _ => {
       eventsHandler.modelImport.newValue(ImportExport.getExample)
-    }}
-
+    }
+    }
+    eventsHandler.uiParams.suscribe {
+      case EmittedValue(value, Source.Ctrl) =>
+        display(value)
+      case _ =>
+    }
     trait ObsViewUpdateText[E] {
       val obs: Obs[E]
       val htmlCp: InDom[Div]
@@ -291,28 +313,32 @@ trait TemplateEvent extends TemplatePhy {
         val x = e.clientX
         val y = -e.clientY
         val clickIn = pc + P(x, y)
-        val other = P(clickIn.x / scale + minViewX, clickIn.y / scale + minViewY)
+        val other = clickIn / viewPort.scale + viewPort.leftBottm
 
         Logger.log(PointExport(other))
         Logger.log(PointExport(viewPort.leftBottm))
         implicit val s: Double = sizeFactor
         clickBehavhoir match {
           case (Purpose.Void, Purpose.Void) =>
-          case (purpose, what) =>
+          case (Purpose.Move, somthong) =>
+            somthong match {
+              case Purpose.Void =>
+              case _ => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), Purpose.Move, somthong))
+            }
+          case (Purpose.Create, what) =>
             what match {
               case Purpose.Void =>
-              case What.Point => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), purpose, what))
-              case What.Interaction => eventsHandler.action.newValue(ActionPointDynamicParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), purpose, what, Some(creationForceOppose)))
+              case What.Point => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), Purpose.Create, what))
+              case What.Interaction => eventsHandler.action.newValue(ActionPointDynamicParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), Purpose.Create, what, Some(creationForceOppose)))
             }
-
-
+          case noWay @ _ => Logger.log(s"Différent de Void Void !!!: $noWay")
         }
-        clickBehavhoir._2 match {
-          case Purpose.Void =>
-          case What.Point => createPoint.me.innerText = "Créer planète"
-          case What.Interaction => createInteraction.me.innerText = "Créer interaction"
+        clickBehavhoir match {
+          case (Purpose.Create, What.Point) => createPoint.me.innerText = "Créer planète"
+          case (Purpose.Create, What.Interaction) => createInteraction.me.innerText = "Créer interaction"
+          case _ =>
         }
-        clickBehavhoir = (Purpose.Void, Purpose.Void)
+        //  clickBehavhoir = (Purpose.Void, Purpose.Void)
       }
     })
 
@@ -372,9 +398,7 @@ trait TemplateEvent extends TemplatePhy {
         ctx.translate(-vp.leftBottm.x, (-vp.leftBottm.y - vp.h.y))
 
 
-        minViewX = vp.leftBottm.x
-        minViewY = vp.leftBottm.y
-        scale = vp.scale
+        params.viewPort = vp
         ui.drawScreenLeftBottm()
         eventsHandler.viewPort.newValue(EmittedValue(vp, Source.UI))
         //   ctx.setTransform(vp.value.scale,0,0,-vp.value.scale,vp.value.leftBottm.x,vp.value.leftBottm.y)

@@ -51,7 +51,8 @@ case class EventContext[ExpType,ImptType](
                                            userWant: Obs[Purpose] = obs(),
                                            saveModel: Obs[Unit] = obs(),
                                            modelForSave: Obs[ExpType] = obs[ExpType](),
-                                           modelImport: Obs[ImptType] = obs[ImptType]()
+                                           modelImport: Obs[ImptType] = obs[ImptType](),
+                                        //   uIParams: Obs[EmittedValue[UIParams]]
                                 ) {
 
 

@@ -31,6 +31,14 @@ trait TemplatePhy {
     {i.toString}
   </option>)
 
+  @inline
+  def trueFalse[A](trueValue : A, falseVale : A, boolean: Boolean): A = if (boolean) trueValue else falseVale
+
+  def display(value: UIParams): Unit = {
+    timeup.me.innerText = value.scaleTime.toString
+    sizeFactorInput.me.innerText = value.sizeFactor.toString
+    correctionInput.me.innerText = trueFalse("Oui","Non",value.correction)
+  }
   def setUpHtml(): Unit = {
 
     val crCont = Grid[String]("creation", Grid.withLegend, "Création")
@@ -107,7 +115,7 @@ trait TemplatePhy {
       Stabilise
     </div>
   })
-  protected lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={width.toString} height={height.toString}></canvas>)
+  protected lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={viewPort.w.x.toString} height={viewPort.h.y.toString}></canvas>)
 
   protected lazy val newElementMassseHtml: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="in" class="in col">
@@ -212,6 +220,8 @@ trait TemplatePhy {
     <div id="planeteAction">
       <select id="planeteAction-select">
         <option value={Purpose.Delete.toString}>Supprimer</option>
+        <option value={Purpose.DontFollow.toString}>Ne plus suivre</option>
+        <option value={Purpose.Move.toString}>Déplacer</option>
         <!--option value={Purpose.Create.toString}>{Purpose.Create.toString}</option-->
       </select>
       <div class="in" id="planeteAction-ok">Appliquer</div>
