@@ -18,7 +18,7 @@ trait Param {
 
 
 
-  var interaction: Interaction
+ // var interaction: Interaction
   var correction: Boolean
 
 }
@@ -30,7 +30,7 @@ object CalculParam {
       e.speedFactor,
       e.scaleTime,
       e.frt,
-      e.interaction,
+     // e.interaction,
       e.correction,
       e.G
     )

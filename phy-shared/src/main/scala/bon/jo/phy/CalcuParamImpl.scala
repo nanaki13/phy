@@ -8,7 +8,7 @@ case class CalcuParamImpl(
                            var frt: Double,
 
 
-                           var interaction: Interaction,
+                         //  var interaction: Interaction,
                            var correction: Boolean,
                            var G : Double
                          ) extends CalculParam

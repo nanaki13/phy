@@ -24,6 +24,7 @@ trait TemplateEvent extends TemplatePhy {
 
   import params._
 
+
   type InterSel = InteractionSelection[PointDynamicColorCircle, PointInteraction[PointDynamicColorCircle]]
   type Inter = PointInteraction[PointDynamicColorCircle]
 
@@ -76,13 +77,13 @@ trait TemplateEvent extends TemplatePhy {
     selection.me.appendChild(g.html())
     $[Div]("selected-inter").clkOnce().suscribe {
       e =>
-        val nextInter: Interaction = params.switchIneraction
+        val nextInter: Interaction = switchIneraction
           .zipWithIndex
           .map(e =>
-            (e._1, if (e._2 != params.switchIneraction.size - 1) {
-              params.switchIneraction(e._2 + 1)
+            (e._1, if (e._2 != switchIneraction.size - 1) {
+              switchIneraction(e._2 + 1)
             } else {
-              params.switchIneraction.head
+              switchIneraction.head
             }, e._2))
           .find(_._1 == selected.interaction).get._2
         $[Div]("selected-inter").innerText = nextInter.name
@@ -232,9 +233,8 @@ trait TemplateEvent extends TemplatePhy {
     })
     interactionType.me.clkOnce().suscribe(_ => {
       switchIneraction = switchIneraction.tail :+ switchIneraction.head
-      interaction = switchIneraction.head
-      interactionType.me.innerText = interaction.name
-      eventsHandler.ineraction.newValue(interaction)
+      interactionType.me.innerText = switchIneraction.head.name
+      eventsHandler.ineraction.newValue(switchIneraction.head)
     })
     interactionSelectionOppose.me.clkOnce().suscribe(_ => {
       creationForceOppose = !creationForceOppose
@@ -244,7 +244,7 @@ trait TemplateEvent extends TemplatePhy {
     frtOptionIn.me.UserCanUpdate().suscribe(e => {
       eventsHandler.frotement.newValue(e.trim.toDouble)
     })
-
+    eventsHandler.ineraction.suscribe(creationInteractionElm = _)
 
     correctionInput.me.clkOnce().suscribe(_ => {
       correction = !correction
@@ -294,6 +294,7 @@ trait TemplateEvent extends TemplatePhy {
         clickBehavhoir = (Purpose.Void, currentSelectionWhat)
         planeteActionSubmit.innerText = "Appliquer"
       }
+
     })
     planeteActionSubmit.addEventListener[Event]("click", _ => {
       eventsHandler.userWant.newValue(selectedPurpose)
@@ -372,7 +373,7 @@ trait TemplateEvent extends TemplatePhy {
             what match {
               case Purpose.Void =>
               case What.Point => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what))
-              case What.Interaction => eventsHandler.action.newValue(ActionPointDynamicParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what, Some(creationForceOppose)))
+              case What.Interaction => eventsHandler.action.newValue(ActionPointDynamicParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what, Some((creationInteractionElm,creationForceOppose))))
             }
           case noWay@_ => Logger.log(s"Différent de Void Void !!!: $noWay")
         }
@@ -389,7 +390,7 @@ trait TemplateEvent extends TemplatePhy {
     eventsHandler.opeationOnElementDone.suscribe {
       case (purpose, Point, i) =>
         purpose match {
-          case Purpose.PlanetTarget =>
+
           case Purpose.Move =>
           case Purpose.Delete => removePlaneteFromSelection()
           case Purpose.Create =>
@@ -401,7 +402,7 @@ trait TemplateEvent extends TemplatePhy {
         }
       case (purpose, Purpose.What.Interaction, i) =>
         purpose match {
-          case Purpose.PlanetTarget =>
+
           case Purpose.Move =>
           case Purpose.Delete => removeInteractionFromSelection()
           case Purpose.Create =>

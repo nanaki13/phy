@@ -56,7 +56,7 @@ abstract sealed  class Interaction(val name: String) {
 
 object Interaction {
 
-  val all = List(Faible,Forte,Ressort)
+  val all = List(Faible,Forte,Ressort,Atomique)
 
   def apply(name: String): Option[Interaction] = all.find(_.name == name)
 
@@ -69,17 +69,24 @@ object Interaction {
   }
 
 
+  object Atomique extends Interaction("Atomique") {
+    override def calculA(implicit ctx: CaculContext, e: CalculParam): A = {
+
+      (ctx.pointToSource* e.G * ctx.source.m * ctx.point.m) /( ctx.distCarre * ctx.dist)
+    }
+  }
+
   object Faible extends Interaction("Faible") {
     override def calculA(implicit ctx: CaculContext, e: CalculParam): A = {
-      val p = ctx.point
+
       (ctx.pointToSource* e.G * ctx.source.m * ctx.point.m) / ctx.distCarre
     }
   }
 
   object Ressort extends Interaction("Ressort") {
     override def calculA(implicit ctx: CaculContext, calculParam: CalculParam): A = {
-      val p = ctx.point
-      (ctx.pointToSource) * ctx.dist * calculParam.kRessort
+
+      (ctx.pointToSource)* ctx.source.m  * ctx.dist * calculParam.kRessort
     }
   }
 

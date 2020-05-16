@@ -17,13 +17,13 @@ case class UIParams(
                      var scaleTime: Double = 1d,
                      var sizeFactor: Double = 1d,
                      var maskColor: String = "#000F56",
-                     var switchIneraction: List[Interaction]= List(Interaction.Faible, Interaction.Forte,Interaction.Ressort),
+
                      var correction: Boolean = true,
                      var viewPort: ViewPort = view.ViewPort(1d, P(0, 0), V(2400), V(0, 1200)),
                      var planeteChoice : List[Int] = Nil,
                      var G: Double  = 6.67E-1
                    )  extends Param {
-   var interaction: Interaction =Interaction.Faible
+
 
 
 

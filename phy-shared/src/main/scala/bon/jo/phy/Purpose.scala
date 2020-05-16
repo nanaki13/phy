@@ -5,16 +5,17 @@ object Purpose {
 
 
 
-  case object PlanetTarget extends Purpose
+ // case object PlanetTarget extends Purpose
 
-  case object Move extends Purpose
-  case object Delete extends Purpose
-  case object DontFollow extends Purpose
-  case object Create extends Purpose
-  case object Void extends Purpose with What
+  case object Move extends Named("Déplacer") with Purpose
+  case object Delete extends Named("Suppromer") with Purpose
+  case object DontFollow extends Named("Ne plus suivre") with Purpose
+  case object Follow extends Named("Suivre") with Purpose
+  case object Create extends Named("Créer") with Purpose
+  case object Void extends Named("Rien") with Purpose with What
   def apply(puport : String): Purpose = all.find(_.toString == puport).get
 
-  val all = List(PlanetTarget,Move,Delete,Create,Void,DontFollow)
+  val all = List(Move,Delete,Create,Void,DontFollow,Follow)
   object What{
     case object Point extends What
     case object Interaction extends What{
@@ -31,14 +32,18 @@ object Purpose {
           }
         }
       }
-      case object Attractive extends Named("Attractive",1D)  with Type
-      case object Repulsive extends Named("Repulsive",-1D)  with Type
+      case object Attractive extends NamedWithFactor("Attractive",1D)  with Type
+      case object Repulsive extends NamedWithFactor("Repulsive",-1D)  with Type
       val all: Map[String,Type] = List[Type](Attractive,Repulsive).map {e => (e.name,e)}.toMap
     }
 
   }
   sealed trait  What
-  abstract class Named(val name : String,val factor : Double)
+  abstract class NamedWithFactor(name : String,val factor : Double) extends  Named(name)
+  abstract class Named(val name : String)
 }
 
-sealed  trait Purpose
+sealed  trait Purpose extends NamedOps
+trait NamedOps{
+  def name : String
+}

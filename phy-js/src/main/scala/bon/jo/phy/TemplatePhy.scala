@@ -8,6 +8,7 @@ import bon.jo.html.cpnt.ReadImportFile
 import bon.jo.html.{InDom, XmlHtmlView}
 import bon.jo.phy.EventContext._
 import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
+import bon.jo.phy.Purpose.DontFollow
 import bon.jo.phy.view.{Cursor, UIParams}
 import org.scalajs.dom.html.{Canvas, Div, Select, Option => OptHtml}
 import org.scalajs.dom.raw.HTMLElement
@@ -28,12 +29,12 @@ trait TemplatePhy {
   val params: UIParams
 
   import params._
-
+  var switchIneraction: List[Interaction]= List( Interaction.Atomique,Interaction.Faible, Interaction.Forte,Interaction.Ressort)
   val colorChooser = new ColorChooser
   val selection: Grid[String] = Grid[String]("selectino-cont", Grid.withLegend, "Sélection")
   val noneChoixString = "-"
   val NoneChoix: InDom[OptHtml] with XmlHtmlView[OptHtml] = optFromStringValue(noneChoixString)
-
+  var creationInteractionElm: Interaction = switchIneraction.head
   def optFromStringValue(i: Any): InDom[OptHtml] with XmlHtmlView[OptHtml] = InDom[OptHtml](<option value={i.toString}>
     {i.toString}
   </option>)
@@ -223,13 +224,16 @@ trait TemplatePhy {
     </div>
   })
 
+  def initalSelPupose = List(Purpose.Delete,Purpose.Follow,Purpose.DontFollow,Purpose.Move)
+  def optionHtml = initalSelPupose.map(e => {
+    <option value={e.toString}>
+      {e.name}</option>
+
+  })
   protected lazy val planeteAction: InDom[Div] with XmlHtmlView[Div] = InDom[Div](
     <div id="planeteAction">
       <select id="planeteAction-select">
-        <option value={Purpose.Delete.toString}>Supprimer</option>
-        <option value={Purpose.DontFollow.toString}>Ne plus suivre</option>
-        <option value={Purpose.Move.toString}>Déplacer</option>
-        <!--option value={Purpose.Create.toString}>{Purpose.Create.toString}</option-->
+        {Group(optionHtml)}
       </select>
       <div class="in" id="planeteAction-ok">Appliquer</div>
     </div>)
