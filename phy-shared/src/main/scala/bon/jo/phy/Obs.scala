@@ -4,15 +4,22 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 
-trait ObsFact[A]{
-  def apply():  Obs[A]
+trait ObsFact[A] {
+  def apply(): Obs[A]
 }
+
 trait Obs[A] {
   def suscribe(client: A => Unit): Unit
 
   def newValue(a: A): Unit
 
-  def clearClients: Unit
+  def clearClients(): Unit
+
+  def map[B](f: A => B): Obs[B] = {
+    val newOne = Obs.once[B]()
+    this.suscribe(a => newOne.newValue(f(a)))
+    newOne
+  }
 
   def toFuture(implicit executionContext: ExecutionContext): Future[A] = {
     val p2 = scala.concurrent.Promise[A]()
@@ -28,6 +35,7 @@ object Obs {
     val ret = new OnceObs[A]() {}
     ret
   }
+
 
   def once[A](client: A => Unit): OnceObs[A] = {
     val ret = new OnceObs[A](client) {}

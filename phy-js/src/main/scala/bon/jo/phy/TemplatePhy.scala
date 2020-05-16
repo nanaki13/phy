@@ -1,10 +1,14 @@
 package bon.jo.phy
 
+import java.util.UUID
+
 import bon.jo.html.DomShell.$
 import bon.jo.html.Types.FinalComponent
 import bon.jo.html.cpnt.ReadImportFile
 import bon.jo.html.{InDom, XmlHtmlView}
-import bon.jo.phy.view.UIParams
+import bon.jo.phy.EventContext._
+import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
+import bon.jo.phy.view.{Cursor, UIParams}
 import org.scalajs.dom.html.{Canvas, Div, Select, Option => OptHtml}
 import org.scalajs.dom.raw.HTMLElement
 
@@ -12,8 +16,11 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
 import scala.xml._
-import EventContext._
-import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
+
+
+trait AutoId{
+  val id :String = UUID.randomUUID().toString
+}
 
 trait TemplatePhy {
 
@@ -22,7 +29,7 @@ trait TemplatePhy {
 
   import params._
 
-
+  val colorChooser = new ColorChooser
   val selection: Grid[String] = Grid[String]("selectino-cont", Grid.withLegend, "Sélection")
   val noneChoixString = "-"
   val NoneChoix: InDom[OptHtml] with XmlHtmlView[OptHtml] = optFromStringValue(noneChoixString)
@@ -45,10 +52,10 @@ trait TemplatePhy {
 
     var tmpGrid = Grid("prop-creation")
 
-    tmpGrid.cellByRaw = 1
+    tmpGrid.cellByRaw = 2
     tmpGrid :+ bagName("masse : ", newElementMassseHtml.xml()) :+ bagName("interaction:", <div>
       {interactionType.xml()}{interactionSelectionOppose.xml()}
-    </div>)
+    </div>) :+  bagName("Color : ", colorChooser)
 
     crCont :+ tmpGrid
 
@@ -251,6 +258,14 @@ trait TemplatePhy {
     </div>
   }
 
+  private def bagName(name: String, node: XmlHtmlView[_]) = {
+    <div class="col d-inline" id={name + "-id"}>
+      <div class="in d-inline">
+        {name}
+      </div>{node.xml()}
+    </div>
+  }
+
   private def doSelectHtml(idDiv: String, idSelect: String) = InDom[Div](
     <div id={idDiv}>
       <select id={idSelect}>
@@ -378,6 +393,7 @@ trait TemplatePhy {
     def :+(n: Node): Grid[A] = addCell(n.asInstanceOf[Elem])
 
     def :+(n: XmlHtmlView[_]): Grid[A] = addCell(n.xml().asInstanceOf[Elem])
+    def :+(n: NodeBuffer): Grid[A] = addCell(<div>{Group(n)}</div>)
 
     var table: List[mutable.ListBuffer[Node]] = ListBuffer[Node]() :: Nil
 

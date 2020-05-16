@@ -1,7 +1,7 @@
 package bon.jo.phy
 
 import bon.jo.Logger
-import bon.jo.html.InDom
+import bon.jo.html.{DomShell, InDom}
 import bon.jo.html.DomShell.{$, ExtendedElement}
 import bon.jo.html.cpnt.Download
 import bon.jo.phy.ImportExport.{ExportedElement, ModelExport, PointExport}
@@ -13,7 +13,7 @@ import org.scalajs.dom.{CanvasRenderingContext2D, Event}
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html.{Div, Select}
 import EventContext._
-import bon.jo.phy.view.{DrawerJS, UIParams}
+import bon.jo.phy.view.{DrawerJS, PointDynamicColor, UIParams}
 import org.scalajs.dom.raw.HTMLElement
 
 import scala.scalajs.js.JSON
@@ -27,30 +27,53 @@ trait TemplateEvent extends TemplatePhy {
   type InterSel = InteractionSelection[PointDynamicColorCircle, PointInteraction[PointDynamicColorCircle]]
   type Inter = PointInteraction[PointDynamicColorCircle]
 
+  def colorXml(implicit selected: PointDynamicColor[_]) = {
+    <div class="in">
+      Couleur :
+    </div>
+      <div id="selected-color" class="in" style={s"height:1em;background-color:${selected.c.toHex}"}>
+      </div>
+  }
+
+  def massXml(implicit selected: PointDynamicColor[_]) = {
+    <div class="in">
+      masse :
+    </div>
+      <div id="selected-masse" class="in">
+        {selected.m}
+      </div>
+  }
+
+  def rayonXml(implicit selected: PointDynamicColor[Circle]) = {
+    <div class="in">
+      rayon :
+    </div>
+      <div id="selected-rayon" class="in">
+        {selected.shape.r}
+      </div>
+  }
+
+  def ineractionXml(implicit v: Inter) = {
+    <div id="selected-inter" class="in">
+      {v.interaction.name}
+    </div>
+      <div id="selected-inter-type" class="in">
+        {v._type.toString}
+      </div>
+  }
+
   def updateInfoInteraction[A <: InterSel]
   (selected: Inter,
    interactionSelection: A)(implicit ev: EventContext[_, _]): Unit = {
-    val sele = InDom[Div](<div id="sele-updat">
-      <div id="selected-inter">
-        {selected.interaction.name}
-      </div>
-      <div>
-        masse :
-      </div>
-      <div id="selected-masse">
-        {selected.p.m}
-      </div>
-      <div>
-        rayon :
-      </div>
-      <div id="selected-rayon">
-        {selected.p.shape.r}
-      </div>
-    </div>)
-    if (sele.isInDom) {
-      sele.removeFromView()
+    implicit val p = selected.p
+    implicit val i = selected
+    val g = Grid("sele-updat", Grid.withLegend, "Information sur l'interaction")
+    g :+ ineractionXml :+ massXml :+ rayonXml :+ colorXml
+
+    if (g.isInDom) {
+      g.removeFromView()
     }
-    selection.me.appendChild(sele.html())
+    selection.me.appendChild(g.html())
     $[Div]("selected-inter").clkOnce().suscribe {
       e =>
         val nextInter: Interaction = params.switchIneraction
@@ -66,6 +89,10 @@ trait TemplateEvent extends TemplatePhy {
         selected.interaction = nextInter
         ev.selectionUpdateUiToCtrl.newValue(interactionSelection)
     }
+    $[Div]("selected-inter-type").clkOnce().suscribe { e =>
+      selected._type = !selected._type
+      ev.selectionUpdateUiToCtrl.newValue(interactionSelection)
+    }
     $[Div]("selected-masse").UserCanUpdate().suscribe(e => {
 
       selected.p.m = e.toDouble
@@ -76,30 +103,33 @@ trait TemplateEvent extends TemplatePhy {
       selected.p.shape.r = e.toDouble
       ev.selectionUpdateUiToCtrl.newValue(interactionSelection)
     })
+    val colrElement = $[Div]("selected-color")
+    val cChoose = new ColorChooser
+    colrElement.clkOnce().suscribe(e => {
+      if (!cChoose.isInDom) {
+        colrElement.addChild(cChoose.xml())
+        cChoose.init(colrElement)
+        cChoose.colorObs.suscribe { c =>
+          selected.p.c = c
+          ev.selectionUpdateUiToCtrl.newValue(interactionSelection)
+        }
+      }
+    })
   }
 
   type PlanSel = PlaneteSelection[PointDynamicColorCircle]
 
   def updateInfoPlanete(selected: PointDynamicColorCircle, planeteSelection: PlanSel)(implicit ev: EventContext[_, _]) = {
-    val sele = InDom[Div](<div id="sele-updat">
-      <div>
-        masse :
-      </div>
-      <div id="selected-masse">
-        {selected.m}
-      </div>
-      <div>
-        rayon :
-      </div>
-      <div id="selected-rayon">
-        {selected.shape.r}
-      </div>
-    </div>)
-    if (sele.isInDom) {
-      sele.removeFromView()
-    }
-    selection.me.appendChild(sele.html())
+    implicit val p = selected
+    val g = Grid("sele-updat", Grid.withLegend, "Information sur la planète")
+    g :+ massXml :+ rayonXml :+ colorXml
 
+    if (g.isInDom) {
+      g.removeFromView()
+    }
+
+
+    selection.me.appendChild(g.html())
 
     $[Div]("selected-masse").UserCanUpdate().suscribe(e => {
 
@@ -110,6 +140,18 @@ trait TemplateEvent extends TemplatePhy {
     $[Div]("selected-rayon").UserCanUpdate().suscribe(e => {
       selected.shape.r = e.toDouble
       ev.selectionUpdateUiToCtrl.newValue(planeteSelection)
+    })
+    val colrElement = $[Div]("selected-color")
+    val cChoose = new ColorChooser
+    colrElement.clkOnce().suscribe(e => {
+      if (!cChoose.isInDom) {
+        colrElement.addChild(cChoose.xml())
+        cChoose.init(colrElement)
+        cChoose.colorObs.suscribe { c =>
+          selected.c = c
+          ev.selectionUpdateUiToCtrl.newValue(planeteSelection)
+        }
+      }
     })
   }
 
@@ -129,6 +171,7 @@ trait TemplateEvent extends TemplatePhy {
     eventsHandler.newElemtsMasse.suscribe { v =>
       newElemtsMasse = v
     }
+
 
     def tr(p: Boolean): Unit = {
       val tracerString = if (p) "oui" else "non"
@@ -323,15 +366,15 @@ trait TemplateEvent extends TemplatePhy {
           case (Purpose.Move, somthong) =>
             somthong match {
               case Purpose.Void =>
-              case _ => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), Purpose.Move, somthong))
+              case _ => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Move, somthong))
             }
           case (Purpose.Create, what) =>
             what match {
               case Purpose.Void =>
-              case What.Point => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), Purpose.Create, what))
-              case What.Interaction => eventsHandler.action.newValue(ActionPointDynamicParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), Color("#FF5F1C"), Circle(20f)), Purpose.Create, what, Some(creationForceOppose)))
+              case What.Point => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what))
+              case What.Interaction => eventsHandler.action.newValue(ActionPointDynamicParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what, Some(creationForceOppose)))
             }
-          case noWay @ _ => Logger.log(s"Différent de Void Void !!!: $noWay")
+          case noWay@_ => Logger.log(s"Différent de Void Void !!!: $noWay")
         }
         clickBehavhoir match {
           case (Purpose.Create, What.Point) => createPoint.me.innerText = "Créer planète"
@@ -406,7 +449,7 @@ trait TemplateEvent extends TemplatePhy {
 
 
     }
-
+    colorChooser.init(root.me)
     eventsHandler
   }
 
@@ -426,6 +469,5 @@ trait TemplateEvent extends TemplatePhy {
 
 }
 
-case class InteractionSelectionCust(override val selected: Option[PointInteraction[PointDynamicColorCircle]]) extends InteractionSelection[PointDynamicColorCircle, PointInteraction[PointDynamicColorCircle]](selected)
 
-case class PlaneteSelectionCust(override val selected: Option[PointDynamicColorCircle]) extends PlaneteSelection[PointDynamicColorCircle](selected)
+

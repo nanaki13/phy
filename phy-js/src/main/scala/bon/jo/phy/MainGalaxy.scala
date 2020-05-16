@@ -1,16 +1,14 @@
 package bon.jo.phy
 
 import bon.jo.Logger
-import bon.jo.phy.ImportExport.{ExportedElement, ModelExport, PDExport}
+import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.Purpose.What
-import bon.jo.phy.Purpose.What.Interaction.Attractive
 import bon.jo.phy.view.Shape.Circle
-import bon.jo.phy.view.{Drawer, DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
+import bon.jo.phy.view.{UIParams, ViewPort}
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 
-import scala.scalajs.js.JSON
 import scala.scalajs.js.timers.SetIntervalHandle
 import scala.util.Random
 
@@ -153,6 +151,7 @@ object MainGalaxy extends App {
             val p = rdPointDynamic
             p.p = impl.p
             p.m = impl.m
+            p.c = impl.c
             model.interactions = model.interactions :+ PointInteraction(p, calculParam.interaction, forceType)
             eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Interaction, model.interactions.size - 1))
           }
@@ -165,7 +164,7 @@ object MainGalaxy extends App {
             val p = rdPointDynamic
             p.p = impl.p
             p.m = impl.m
-
+            p.c = impl.c
             model.points = model.points :+ p
             eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Point, model.points.size - 1))
           }
@@ -215,6 +214,7 @@ object MainGalaxy extends App {
     def modify(mod: PointDynamicColorCircle, from: PointDynamicColorCircle) = {
       mod.m = from.m
       mod.shape.r = from.shape.r
+      mod.c = from.c
     }
 
     eventContext.selectionUpdateUiToCtrl.suscribe {
@@ -359,28 +359,6 @@ object MainGalaxy extends App {
   go()
 }
 
-class PointDynamicColorCircle(mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), val colorIni: Color, val shapeIni: Circle) extends PointDynamicColor[Circle](mIni, pIni, vIni, aIni, colorIni, shapeIni) {
-  override def mask(implicit tx: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
 
-    drawFill[Circle](this.shape * 1.2F, p)
-  }
-
-  def this(p: PointDynamicColorCircle) {
-    this(p.m, p.p.copy(), p.v.copy(), p.a.copy(), p.c, p.shape.copy())
-  }
-
-  def toJs = null
-
-  override implicit val drawer: Drawer[CanvasRenderingContext2D, Circle] = DrawerJS.CircleDraw
-}
-
-class TextDynamic(m: Double, pIni: P, vIni: V = V(), aIni: A = A(), c: Color, shape: Shape.Text) extends PointDynamicColor[Shape.Text](m, pIni, vIni, aIni, c, shape) {
-  override def mask(implicit tx: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
-
-    drawFill[Shape.Text](this.shape, p)
-  }
-
-  override implicit val drawer: Drawer[CanvasRenderingContext2D, Shape.Text] = DrawerJS.TextDraw
-}
 
 

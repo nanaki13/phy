@@ -90,15 +90,15 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
   def drawScreenLeftBottm() = {
     if(!Conf.prod){
       ct.fillStyle = "black"
-      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.h)(ct, 1)
+      DrawerJS.CircleDraw.drawFill(Circle(10), viewPort.leftBottm + viewPort.h)(ct, 1)
       ct.fillStyle = "red"
-      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.w)(ct, 1)
+      DrawerJS.CircleDraw.drawFill(Circle(10), viewPort.leftBottm + viewPort.w)(ct, 1)
       ct.fillStyle = "blue"
-      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm + viewPort.w + viewPort.h)(ct, 1)
+      DrawerJS.CircleDraw.drawFill(Circle(10), viewPort.leftBottm + viewPort.w + viewPort.h)(ct, 1)
       ct.fillStyle = "green"
-      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.leftBottm)(ct, 1)
+      DrawerJS.CircleDraw.drawFill(Circle(10), viewPort.leftBottm)(ct, 1)
       ct.fillStyle = "yellow"
-      DrawerJS.CircleDraw.drawFill(Circle(50), viewPort.middle)(ct, 1)
+      DrawerJS.CircleDraw.drawFill(Circle(4), viewPort.middle)(ct, 1)
     }
 
 
