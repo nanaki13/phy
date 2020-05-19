@@ -5,7 +5,7 @@ import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.Purpose.What
 import bon.jo.phy.view.Shape.Circle
-import bon.jo.phy.view.{UIParams, ViewPort}
+import bon.jo.phy.view.{PointDynamicColor, UIParams, ViewPort}
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 
@@ -16,25 +16,16 @@ import scala.util.Random
 object MainGalaxy extends App {
   // val a = A(1,1)
   val a0 = 0
-  val a_0 = A(0, 0)
-  val v_0 = V(70, 0)
+  val a_0 = A(0)
+  val v_0 = V(70)
   val p_0 = P(600, 350)
   val dt = 1F / 50F
   val delataTFrame = 1F / 20F
 
   var tmp: Option[Seq[(P, V)]] = None
 
-  def draw(e: P, vi: V)(implicit ctx: CanvasRenderingContext2D): Unit = {
-    ctx.beginPath()
-    ctx.strokeStyle = "black"
-    ctx.moveTo(e.x, e.y)
-    ctx.lineTo(e.x + vi.x, e.y + vi.y)
-    ctx.stroke()
-  }
-
 
   private var t = 0
-  private var initPhase = true
 
   private var mainAnim: SetIntervalHandle = _
 
@@ -92,7 +83,6 @@ object MainGalaxy extends App {
       }
 
 
-      tmp.foreach(e => e.foreach(draw _ tupled _))
       t += 1
     })
 
@@ -104,7 +94,7 @@ object MainGalaxy extends App {
     ui.drawScreenLeftBottm()
   }
 
-  def toCalcuParam(UIParams: UIParams)(implicit eventContext: EventContext[_, _]): Unit = {
+  def emitFromUiParam(UIParams: UIParams)(implicit eventContext: EventContext[_, _]): Unit = {
     eventContext.correction.newValue(UIParams.correction)
     //   eventContext.action.suscribe(calculParam.correction = _)
     eventContext.frotement.newValue(UIParams.frt)
@@ -116,7 +106,7 @@ object MainGalaxy extends App {
     eventContext.sizeFactor.newValue(UIParams.sizeFactor)
   }
 
-  def linkParam(calculParam: CalculParam)(implicit ui: UI, eventContext: EventContext[ModelExport, ExportedElement]) = {
+  def linkParam(calculParam: CalculParam)(implicit ui: UI, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
     eventContext.correction.suscribe(calculParam.correction = _)
     //   eventContext.action.suscribe(calculParam.correction = _)
     eventContext.frotement.suscribe(calculParam.frt = _)
@@ -132,50 +122,50 @@ object MainGalaxy extends App {
 
   def stopCamera(UI: UI): Unit = UI.camera = stopCamera(UI.camera)
 
-  def getPointSelection[A <: PointDynamic](implicit model: Model[A]): Option[A] = selectedIndexPlanete match {
-    case (Purpose.What.Interaction, i) => Option(model.interactions(i).p)
-    case (Purpose.What.Point, i) => Option(model.points(i))
-    case _ => Option.empty[A]
+  def getPointSelection[A <: PointDynamic with WithId, B <: PointInteraction[A]]: Option[A] = selectedIndexPlanete match {
+    case selection: PlaneteSelection[_] => selection.selected.asInstanceOf[Option[A]]
+    case selection: InteractionSelection[_, _] => selection.selected.map(_.p).asInstanceOf[Option[A]]
+    case NoneSelection => None
+    case _ => None
   }
 
-  def linkAction(calculParam: CalculParam)(implicit calculateur: Calculateur[PointDynamicColorCircle],
-                                           ui: UI,
-                                           uIParams: UIParams,
-                                           ctx: CanvasRenderingContext2D,
-                                           eventContext: EventContext[ModelExport, ExportedElement], model: Model[PointDynamicColorCircle]) = {
-    implicit val s = uIParams.sizeFactor
+  def linkAction(implicit calculateur: Calculateur[PointDynamicColorCircle], ui: UI, uIParams: UIParams, ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement], model: Model[PointDynamicColorCircle]): EventContext[ModelExport, ExportedElement] = {
+    implicit val s: Double = uIParams.sizeFactor
     eventContext.action.suscribe {
-      case ActionPointDynamicParam(pdy: PointDynamic, Purpose.Create, Purpose.What.Interaction, Some((int : Interaction,forceType: What.Interaction.Type))) =>
+      case ActionPointDynamicParam(pdy: PointDynamic, Purpose.Create, Purpose.What.Interaction, Some((int: Interaction, forceType: What.Interaction.Type))) =>
         pdy match {
-          case impl: PointDynamicColorCircle => {
+          case impl: PointDynamicColorCircle =>
             val p = rdPointDynamic
             p.p = impl.p
             p.m = impl.m
             p.c = impl.c
-            model.interactions = model.interactions :+ PointInteraction(p, int, forceType)
-            eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Interaction, model.interactions.size - 1))
-          }
+            val inter = PointInteraction(p, int, forceType)
+            model.interactions = model.interactions :+ inter
+            eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Interaction, InteractionSelectionCust(Some(inter))))
           case _ =>
         }
       case ActionPointDynamicNoParam(pdy, Purpose.Create, Purpose.What.Point) =>
         pdy match {
-          case impl: PointDynamicColorCircle => {
+          case impl: PointDynamicColorCircle =>
 
             val p = rdPointDynamic
             p.p = impl.p
             p.m = impl.m
             p.c = impl.c
             model.points = model.points :+ p
-            eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Point, model.points.size - 1))
-          }
+            eventContext.opeationOnElementDone.newValue((Purpose.Create, Purpose.What.Point, PlaneteSelectionCust(Some(p))))
           case _ =>
         }
       case ActionPointDynamicNoParam(pdy: PointDynamic, Purpose.Move, what: What) =>
         what match {
           case Purpose.Void =>
-          case _ => getPointSelection.foreach(_.p = pdy.p)
+          case _ => getPointSelection[PointDynamic with WithId,PointInteraction[PointDynamic with WithId]].foreach(a =>a.p = pdy.p)
         }
-      case a@_ => Logger.log(s"not handle action : $a")
+      case ActionPointDynamicNoParam(p: PointDynamic, Purpose.Find, _) =>
+
+        findModelObject(p).foreach(eventContext.selectionCtrlToUi.newValue)
+
+      case a@_ => Logger.log(s"not handle action : $a, select by default")
     }
     //    eventContext.actionPoint.suscribe(action => {
     //      action.what match {
@@ -192,44 +182,78 @@ object MainGalaxy extends App {
     eventContext.speedFactor.suscribe(calculateur.applyV)
     eventContext.stabilise.suscribe(calculateur.stab)
 
-    eventContext.pushPull.suscribe(e => if (e) calculateur.push else calculateur.pull)
+    eventContext.pushPull.suscribe(e => if (e) calculateur.push() else calculateur.pull())
     eventContext.viewPort.suscribe(e => viewPort = e.value)
-    eventContext.replaceAround.suscribe(e => {
+    eventContext.replaceAround.suscribe(_ => {
       ui.clearIfNoKeepTail
       calculateur.replaceAround(model.interactions.head.p.p, viewPort.w.x / 4, 0)
     })
     eventContext.userChoice.suscribe {
       case (Purpose.Void, _) =>
-      case e@(what, i) => ui.clearIfNoKeepTail
-        eventContext.selectionCtrlToUi.newValue(what match {
-          case Purpose.Void => NoneSelection
-          case What.Point => val a = model.points(i); PlaneteSelectionCust(Some(new PointDynamicColorCircle(a)))
-          case What.Interaction => val a = model.interactions(i); ui.goTo(a.p.p); InteractionSelectionCust(Some(a.copy(new PointDynamicColorCircle(a.p), a.interaction)))
-        })
+      case (what, i) => ui.clearIfNoKeepTail
+        val newSelection: Selection[_] = what match {
+          case Purpose.Void | Purpose.All => NoneSelection
+          case What.Point =>
+            val a = model.points.find(_.id == i.asInstanceOf[PlaneteSelection[_ <: WithId]].selected.get.id)
+            PlaneteSelectionCust(Some(new PointDynamicColorCircle(a.get)))
+          case What.Interaction =>
+            i match {
+              case selection: InteractionSelectionCust
+              => InteractionSelectionCust.apply(selection.selected
+                .flatMap { e =>
+                  model.interactions.find(el => e.p.id == el.p.id)
+                    .map(finded => finded.copy(p = new PointDynamicColorCircle( finded.p)))
+                })
+              case NoneSelection => NoneSelection
+              case _: PlaneteSelection[_] => NoneSelection
+              case _ => NoneSelection
+            }
+        }
+        eventContext.selectionCtrlToUi.newValue(newSelection)
 
-        selectedIndexPlanete = e
+        selectedIndexPlanete = newSelection
 
     }
 
-    def modify(mod: PointDynamicColorCircle, from: PointDynamicColorCircle) = {
+    def findModelObject(p: PointDynamic): Option[Selection[_]] = {
+      val pt = model.points.find { pl =>
+        val rV = p.p - pl.p
+        rV.n < pl.shape.r
+      } map {
+        e =>
+          PlaneteSelectionCust(Some(new PointDynamicColorCircle(e)))
+      }
+      if (pt.isEmpty) {
+        model.interactions.find { pl =>
+          val rV = p.p - pl.p.p
+          rV.n < pl.p.shape.r
+        } map {
+          e =>
+            InteractionSelectionCust(Some(e.copy(new PointDynamicColorCircle(e.p), e.interaction)))
+        }
+      } else {
+        pt
+      }
+
+    }
+
+    def modify(mod: PointDynamicColorCircle, from: PointDynamicColorCircle): Unit = {
       mod.m = from.m
       mod.shape.r = from.shape.r
       mod.c = from.c
     }
 
     eventContext.selectionUpdateUiToCtrl.suscribe {
-      case s@InteractionSelectionCust(Some(selected)) => {
+      case InteractionSelectionCust(Some(selected)) =>
 
-        val mod = model.interactions(selectedIndexPlanete._2)
-        modify(mod.p, selected.p)
-        if (selected.interaction != mod.interaction) {
-          mod.interaction = selected.interaction
+        model.interactions.find(_.p.id == selected.p.id).foreach { mod =>
+          modify(mod.p, selected.p)
+          if (selected.interaction != mod.interaction) {
+            mod.interaction = selected.interaction
+          }
         }
-      }
       case NoneSelection =>
-      case PlaneteSelectionCust(Some(selected)) =>
-        val mod = model.points(selectedIndexPlanete._2)
-        modify(mod, selected)
+      case PlaneteSelectionCust(Some(_)) =>
       case _ =>
     }
 
@@ -240,26 +264,26 @@ object MainGalaxy extends App {
 
       case Purpose.Delete =>
         selectedIndexPlanete match {
-          case (Purpose.What.Point, i) =>
+          case a: PlaneteSelectionCust =>
             ctx.fillStyle = uIParams.maskColor
-            model.points.zipWithIndex.find(_._2 == i).get._1.mask
+            model.points.find(_.id == a.selected.get.id).get.mask
             ui.camera = stopCamera(ui.camera)
-            model.points = model.points.zipWithIndex.filter(_._2 != i).map(_._1)
-            eventContext.opeationOnElementDone.newValue((Purpose.Delete, selectedIndexPlanete._1, selectedIndexPlanete._2))
+            model.points = model.points.filter(_.id != a.id)
+            eventContext.opeationOnElementDone.newValue((Purpose.Delete, What.Point, a.copy(Some(new PointDynamicColorCircle(a.selected.get)))))
 
-          case (Purpose.What.Interaction, i) =>
+          case a: InteractionSelection[_, _] =>
             ctx.fillStyle = uIParams.maskColor
-            model.interactions.zipWithIndex.find(_._2 == i).get._1.p.mask
+            model.interactions.find(_.p.id == a.id).get.p.mask
             ui.camera = stopCamera(ui.camera)
-            model.interactions = model.interactions.zipWithIndex.filter(_._2 != i).map(_._1)
-            eventContext.opeationOnElementDone.newValue((Purpose.Delete, selectedIndexPlanete._1, selectedIndexPlanete._2))
-          case (Purpose.Void, _) =>
+            model.interactions = model.interactions.filter(_.p.id != a.id)
+            eventContext.opeationOnElementDone.newValue((Purpose.Delete, What.Interaction, a.cp()))
+          case NoneSelection =>
 
         }
-        selectedIndexPlanete = (Purpose.Void, -1)
+        selectedIndexPlanete = NoneSelection
 
       case Purpose.DontFollow
-        if (selectedIndexPlanete != (Purpose.Void, -1)) =>
+        if selectedIndexPlanete != NoneSelection =>
         stopCamera(ui)
       case Purpose.Follow =>
         getPointSelection.foreach(ui.follow)
@@ -274,33 +298,26 @@ object MainGalaxy extends App {
     eventContext.modelImport.suscribe { newModel =>
       val m = newModel
 
-      model.interactions.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Delete, Purpose.What.Interaction, 0)
-      })
-
-
-      model.points.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Delete, Purpose.What.Point, 0)
-      })
+      eventContext.resetModelView.newValue(())
 
       model.interactions = m.model.interactions
       model.points = m.model.points
 
       eventContext.viewPort.newValue(EmittedValue(m.viewPort, Source.Ctrl))
       eventContext.uiParams.newValue(EmittedValue(m.uiParams, Source.Ctrl))
-      this.toCalcuParam(m.uiParams)
-      model.interactions.zipWithIndex.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Create, Purpose.What.Interaction, e._2)
+      this.emitFromUiParam(m.uiParams)
+      model.interactions.foreach(e => {
+        eventContext.opeationOnElementDone.newValue(Purpose.Create, Purpose.What.Interaction, InteractionSelectionCust(Some(e)))
       })
-      model.points.zipWithIndex.foreach(e => {
-        eventContext.opeationOnElementDone.newValue(Purpose.Create, Purpose.What.Point, e._2)
+      model.points.foreach(e => {
+        eventContext.opeationOnElementDone.newValue(Purpose.Create, Purpose.What.Point, PlaneteSelectionCust(Some(e)))
       })
 
     }
     eventContext
   }
 
-  var selectedIndexPlanete: (Purpose.What, Int) = (Purpose.Void, -1)
+  var selectedIndexPlanete: Selection[_] = NoneSelection
   var viewPort: ViewPort = _
 
 
@@ -321,7 +338,7 @@ object MainGalaxy extends App {
 
     implicit val calcul: Calculateur[PointDynamicColorCircle] = Calculateur(m)
     linkParam(calculParam)
-    linkAction(calculParam)
+    linkAction
     eventContext.viewPort.newValue(EmittedValue(uiParams.viewPort, Source.Ctrl))
 
     mainAnim = scalajs.js.timers.setInterval(delataTFrame)({

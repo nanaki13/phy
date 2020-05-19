@@ -84,14 +84,14 @@ object ImportExport {
   trait UIParamsExport extends scalajs.js.Object {
 
 
-    var kRessort: Double = js.native
-    var speedFactor: Double = js.native
-    var tracerString: String = js.native
-    var tracer: Boolean = js.native
-    var scaleTime: Double = js.native
-    var sizeFactor: Double = js.native
-    var correction: Boolean = js.native
-    var G: Double = js.native
+    val kRessort: Double = js.native
+    val speedFactor: Double = js.native
+    val tracerString: String = js.native
+    val tracer: Boolean = js.native
+    val scaleTime: Double = js.native
+    val sizeFactor: Double = js.native
+    val correction: Boolean = js.native
+    val G: Double = js.native
 
   }
 
@@ -138,14 +138,14 @@ object ImportExport {
 
     def unnaply(a: A): Option[B]
 
-    def JS = scalajs.js.Dynamic.literal
+    def JS: Dynamic.literal.type = scalajs.js.Dynamic.literal
 
     def cv[A](a: js.Any): A = a.asInstanceOf[A]
 
     object Helpers {
 
       implicit class ToTarget(a: js.Any) {
-        def toTarget[A]: A = cv[A](a)
+        def toTarget[B]: B = cv[B](a)
       }
 
     }
@@ -225,7 +225,7 @@ object ImportExport {
       Some(fact(arg.x, arg.y))
     }
 
-    def apply(p: _XYT) = scalajs.js.Dynamic.literal(
+    def apply(p: _XYT): PointExport = scalajs.js.Dynamic.literal(
       x = p.x,
       y = p.y,
       t = p.t

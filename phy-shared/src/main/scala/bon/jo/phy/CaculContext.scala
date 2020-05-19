@@ -9,8 +9,8 @@ case class CaculContext(var point: PointDynamic = null,
                         var dist: Double = 0,
                         var factor : Double = 1d
                        ) {
-  def rSup = Math.sqrt(Math.sqrt(source.m)) * 1000
+  def rSup: Double = Math.sqrt(Math.sqrt(source.m)) * 1000
 
-  def rInf = Math.sqrt(Math.sqrt(source.m))
+  def rInf: Double = Math.sqrt(Math.sqrt(source.m))
 
 }

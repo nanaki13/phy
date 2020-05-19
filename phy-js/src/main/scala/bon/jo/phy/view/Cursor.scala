@@ -58,14 +58,14 @@ class Cursor extends FinalComponent[Div] with CursorParam {
   }
 
 
-  def update(e : MouseEvent) = {
+  def update(e : MouseEvent): Unit = {
     val c: Div = $[Div](id + "-cursor")
     val size = P(c.getBoundingClientRect().right - c.getBoundingClientRect().left, c.getBoundingClientRect().bottom - c.getBoundingClientRect().top)
     val sizeCont = P(me.getBoundingClientRect().right - me.getBoundingClientRect().left, me.getBoundingClientRect().bottom - me.getBoundingClientRect().top)
     val clk = P(e.clientX, e.clientY) - P(me.getBoundingClientRect().left, me.getBoundingClientRect().top)
     val center = clk - (size / 2)
-    if (!_noYDelta) c.style.top = (center.y) + "px"
-    if (!_noXDelta) c.style.left = (center.x) + "px"
+    if (!_noYDelta) c.style.top = center.y + "px"
+    if (!_noXDelta) c.style.left = center.x + "px"
     newNormalizedValue.newValue(P(clk.x / sizeCont.x, clk.y / sizeCont.y))
   }
   override def init(parent: HTMLElement): Unit = {
@@ -89,11 +89,11 @@ object Cursor {
     protected var _noYDelta = false
   }
 
-  def xCursor = {
+  def xCursor: Cursor = {
     (new Cursor).noYDelta
   }
 
-  def yCursor = {
+  def yCursor: Cursor = {
     (new Cursor).noXDelta
   }
 }

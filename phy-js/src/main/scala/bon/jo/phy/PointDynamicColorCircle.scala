@@ -6,7 +6,9 @@ import bon.jo.phy.view.{Drawer, DrawerJS, PointDynamicColor}
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 
-class PointDynamicColorCircle(mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), val colorIni: Color, val shapeIni: Circle) extends PointDynamicColor[Circle](mIni, pIni, vIni, aIni, colorIni, shapeIni) {
+class PointDynamicColorCircle(mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), val colorIni: Color, val shapeIni: Circle)
+  extends PointDynamicColor[Circle](mIni, pIni, vIni, aIni, colorIni, shapeIni) with WithId
+{
   override def mask(implicit tx: CanvasRenderingContext2D, sizeFactor: Double): Unit = {
 
     drawFill[Circle](this.shape * 1.2F, p)
@@ -16,7 +18,7 @@ class PointDynamicColorCircle(mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(
     this(p.m, p.p.copy(), p.v.copy(), p.a.copy(), p.c, p.shape.copy())
   }
 
-  def toJs = null
+  def toJs: Null = null
 
   override implicit val drawer: Drawer[CanvasRenderingContext2D, Circle] = DrawerJS.CircleDraw
 }

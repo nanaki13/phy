@@ -225,7 +225,7 @@ trait TemplatePhy {
   })
 
   def initalSelPupose = List(Purpose.Delete,Purpose.Follow,Purpose.DontFollow,Purpose.Move)
-  def optionHtml = initalSelPupose.map(e => {
+  def optionHtml: List[Elem] = initalSelPupose.map(e => {
     <option value={e.toString}>
       {e.name}</option>
 
@@ -246,7 +246,7 @@ trait TemplatePhy {
   protected lazy val chioceInteraction: InDom[Div] with XmlHtmlView[Div] = doSelectHtml("interaction-div-sel", "inter-sel")
   protected lazy val interactionSelection: Select = $[Select]("inter-sel")
 
-  protected lazy val  importExample  = InDom[Div](<div id="importExample" class ="in">charger un exemple</div>)
+  protected lazy val  importExample: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="importExample" class ="in">charger un exemple</div>)
 
   implicit val cv: js.Any => ExportedElement = { e =>
     ModelExport.unnaply(e.asInstanceOf[ModelExport]).get
@@ -336,7 +336,7 @@ trait TemplatePhy {
   def atrTail(name: String, valeur: String, n: MetaData) = new UnprefixedAttribute(name, valeur, n)
 
   def updateAtttibute(n: Elem, nameAtrr: String, vale: String): Elem = {
-    val nMeta = (n.attributes.map {
+    val nMeta = n.attributes.map {
 
       case Null => Null
       case attribute: PrefixedAttribute if attribute.key == nameAtrr => new PrefixedAttribute(attribute.pre, attribute.key, vale, attribute.next)
@@ -345,7 +345,7 @@ trait TemplatePhy {
       case attribute: UnprefixedAttribute => attribute
       case attribute: Attribute => attribute
 
-    }).foldLeft(Agg(None))((a, b) => {
+    }.foldLeft(Agg(None))((a, b) => {
       a :+ b
     })
 

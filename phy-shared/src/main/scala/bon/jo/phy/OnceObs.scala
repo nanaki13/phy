@@ -1,7 +1,7 @@
 package bon.jo.phy
 
 class OnceObs[A](private var client: A => Unit = null) extends Obs[A] {
-  def clearClients: Unit = {
+  def clearClients(): Unit = {
     client = null
   }
 

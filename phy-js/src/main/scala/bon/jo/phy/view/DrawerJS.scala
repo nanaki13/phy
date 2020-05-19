@@ -8,10 +8,10 @@ object DrawerJS {
   val `2PI`: Double = 2 * Math.PI.toFloat
 
   trait OpsCtw{
-    def fill(implicit t: CanvasRenderingContext2D) ={t.fill()}
-    def stroke(implicit t: CanvasRenderingContext2D)={t.stroke()}
-    def beginPath(implicit t: CanvasRenderingContext2D)={t.beginPath()}
-    def arc(a: Shape.Circle, p: P)(implicit t: CanvasRenderingContext2D, sizeFactor : Double)={
+    def fill(implicit t: CanvasRenderingContext2D): Unit ={t.fill()}
+    def stroke(implicit t: CanvasRenderingContext2D): Unit ={t.stroke()}
+    def beginPath(implicit t: CanvasRenderingContext2D): Unit ={t.beginPath()}
+    def arc(a: Shape.Circle, p: P)(implicit t: CanvasRenderingContext2D, sizeFactor : Double): Unit ={
       t.arc(p.x, p.y, a.r*sizeFactor, 0, `2PI`)
     }
   }

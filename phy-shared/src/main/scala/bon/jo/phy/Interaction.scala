@@ -86,7 +86,7 @@ object Interaction {
   object Ressort extends Interaction("Ressort") {
     override def calculA(implicit ctx: CaculContext, calculParam: CalculParam): A = {
 
-      (ctx.pointToSource)* ctx.source.m  * ctx.dist * calculParam.kRessort
+      ctx.pointToSource * ctx.source.m  * ctx.dist * calculParam.kRessort
     }
   }
 

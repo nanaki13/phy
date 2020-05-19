@@ -4,7 +4,7 @@ import bon.jo.phy.Phy.{A, P, V}
 
 import scala.util.Random
 
-case class Calculateur[Pt <: PointDynamic](model: Model[Pt]) {
+case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
   val `2PI`: Double = math.Pi * 2
 
 

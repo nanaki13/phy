@@ -6,7 +6,7 @@ object Phy {
      def y : Double
      def t : Double
 
-     def to[Other <: XYT[_]]( implicit   fact: Fact[Other])=fact(x,y)
+     def to[Other <: XYT[_]]( implicit   fact: Fact[Other]): Other =fact(x,y)
    }
    abstract class XYT[Self <: XYT[_]]( implicit val  fact: Fact[Self]) extends _XYT {
 
@@ -52,7 +52,7 @@ object Phy {
      }
      def r2(other : XYT[Self]): Double = {
        val nn = n2(other)
-       (nn.x + nn.y)
+       nn.x + nn.y
      }
      def r(other : XYT[Self]): Double ={
        val nn = n2(other)

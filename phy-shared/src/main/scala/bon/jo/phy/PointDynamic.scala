@@ -27,5 +27,5 @@ trait PointDynamic {
 object PointDynamic {
   def apply(p_ : P, v: V = V(), a: A = A(), m: Double = 1
             , forces: List[A] = Nil
-           ): PointDynamic = new PointDynamicImpl(p_, v, a, m, forces)
+           ): PointDynamic with WithId = new PointDynamicImpl(p_, v, a, m, forces)
 }

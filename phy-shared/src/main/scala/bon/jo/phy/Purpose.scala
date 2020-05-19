@@ -6,17 +6,20 @@ object Purpose {
 
 
  // case object PlanetTarget extends Purpose
-
+ case object  Find extends Named("Trouver") with Purpose
   case object Move extends Named("Déplacer") with Purpose
   case object Delete extends Named("Suppromer") with Purpose
   case object DontFollow extends Named("Ne plus suivre") with Purpose
   case object Follow extends Named("Suivre") with Purpose
   case object Create extends Named("Créer") with Purpose
   case object Void extends Named("Rien") with Purpose with What
+  case object All extends Named("Tout") with Purpose with What
   def apply(puport : String): Purpose = all.find(_.toString == puport).get
 
   val all = List(Move,Delete,Create,Void,DontFollow,Follow)
   object What{
+
+
     case object Point extends What
     case object Interaction extends What{
       object Type{

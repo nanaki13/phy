@@ -1,5 +1,7 @@
 package bon.jo.phy
 import bon.jo.phy.view.UIParams
+
+import scala.xml.Elem
 class TemplatePhyTest extends org.scalatest.wordspec.AnyWordSpec with TemplatePhy {
   val params: UIParams =  UIParams()
   "Xml" when {
@@ -15,7 +17,7 @@ class TemplatePhyTest extends org.scalatest.wordspec.AnyWordSpec with TemplatePh
   }
 
 
-val xml = <input id="test" tp="file" value="Import"></input>
+val xml: Elem = <input id="test" tp="file" value="Import"></input>
   "Xml test" when {
     "have attribue" should {
       "Have the atribute updated" in {
