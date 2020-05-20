@@ -182,7 +182,7 @@ trait TemplateEvent extends TemplatePhy {
       tracer = !tracer
       eventsHandler.tracer.newValue(tracer)
       val tracerString = if (tracer) "oui" else "non"
-      keepTail.me.innerText = s"tracter:$tracerString"
+      keepTail.me.innerText = s"tracter: $tracerString"
     })
     eventsHandler.tracer.suscribe {
       tr
@@ -357,8 +357,7 @@ trait TemplateEvent extends TemplatePhy {
       val clickIn = pc + P(x, y)
       val other = clickIn / viewPort.scale + viewPort.leftBottm
 
-      Logger.log(PointExport(other))
-      Logger.log(PointExport(viewPort.leftBottm))
+
       implicit val s: Double = sizeFactor
       clickBehavhoir match {
         case (Purpose.Void, Purpose.Void) =>
@@ -433,10 +432,20 @@ trait TemplateEvent extends TemplatePhy {
 
       val a = sel match {
         case inte@InteractionSelectionCust(Some(selected)) =>
+          if(interactionSelection.value != inte.selected.get.id.toString){
+            interactionSelection.value = inte.selected.get.id.toString
+
+            interactionSelection.options.find(_.value == inte.selected.get.id.toString).foreach(opt=>opt.selected = true)
+          }
           currentSelectionWhat = What.Interaction
           updateInfoInteraction(selected, inte.asInstanceOf[UI.modelInterSel])
         case NoneSelection => None
         case pl@PlaneteSelectionCust(Some(selected)) =>
+          if(plneteSelection.value != pl.selected.get.id.toString){
+            plneteSelection.value = pl.selected.get.id.toString
+
+            plneteSelection.options.find(_.value == pl.selected.get.id.toString).foreach(opt=>opt.selected = true)
+          }
           currentSelectionWhat = What.Point
           updateInfoPlanete(selected, pl.asInstanceOf[UI.planeteInterSel])
         case _ => None
