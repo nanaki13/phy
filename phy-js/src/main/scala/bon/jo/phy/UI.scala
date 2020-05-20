@@ -4,16 +4,15 @@ import bon.jo.Logger
 import bon.jo.Logger.Conf
 import bon.jo.html.DomShell.ExtendedElement
 import bon.jo.html.InDom
-import bon.jo.phy.ImportExport.{ExportedElement, ModelExport, PointExport}
+import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
 import bon.jo.phy.Phy.{A, P, V}
 import bon.jo.phy.Purpose.What
-import bon.jo.phy.view.DrawerJS._
+import bon.jo.phy.UI._
 import bon.jo.phy.view.Shape.Circle
-import bon.jo.phy.view.{DrawerJS, PointDynamicColor, Shape, UIParams, ViewPort}
-import org.scalajs.dom.{CanvasRenderingContext2D, raw}
+import bon.jo.phy.view.{DrawerJS, PointDynamicColor, UIParams}
+import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.html.{Div, Select}
 import org.scalajs.dom.raw.KeyboardEvent
-import UI._
 
 object UI {
   type modelInterSel = Selection[PointInteraction[PointDynamicColorCircle]]
@@ -52,7 +51,7 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
 
   var camera: PointDynamic = PointDynamic(viewPort.middle, V(), A(), 0)
 
-  def follow(value: PointDynamicColor[_ <: Shape])(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
+  def follow(value: PointDynamicColor[_])(implicit ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement]): Unit = {
 
     camera = value
     goTo(camera.p)
@@ -135,14 +134,14 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
     planeteSelectionModel = planeteSelectionModel.filter(_.id != p.id)
     plneteSelection.clear()
     plneteSelection.appendChild(NoneChoix.html())
-    planeteSelectionModel.foreach(e => plneteSelection.appendChild(optFromStringValue(e).html()))
+    planeteSelectionModel.foreach(e => plneteSelection.appendChild(optFromStringValue(e.id).html()))
   }
 
   def removeInteractionFromSelection(p: Selection[_]): Unit = {
     interSelModel = interSelModel.filter(_.id != p.id)
     interactionSelection.clear()
     interactionSelection.appendChild(NoneChoix.html())
-    interSelModel.foreach(e => interactionSelection.appendChild(optFromStringValue(e).html()))
+    interSelModel.foreach(e => interactionSelection.appendChild(optFromStringValue(e.id).html()))
   }
 
   def dw: Double = -viewPort.w.x / 4d

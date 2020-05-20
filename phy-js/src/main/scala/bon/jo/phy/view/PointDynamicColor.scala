@@ -5,8 +5,9 @@ import bon.jo.phy.{PointDynamicImpl, WithId}
 import org.scalajs.dom.CanvasRenderingContext2D
 import org.scalajs.dom.ext.Color
 
-abstract class PointDynamicColor[S](mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), var c: Color, var shape: S)
-  extends PointDynamicImpl(pIni, vIni, aIni, mIni) with JS2D with WithId{
+abstract class PointDynamicColor[S](mIni: Double, pIni: P, vIni: V = V(), aIni: A = A(), var c: Color, var shape: S,id : Int)
+  extends PointDynamicImpl(pIni, vIni, aIni, mIni,Nil,id) with JS2D with WithId{
+
 
   implicit val  drawer: Drawer[CanvasRenderingContext2D, S]
 

@@ -24,7 +24,7 @@ class Cursor extends FinalComponent[Div] with CursorParam {
       c
   }
 
-  def bindBackgroundGreen(): Obs[Color]= newNormalizedValue.map {
+  def bindBackgroundGreen(): Obs[Color] = newNormalizedValue.map {
     e =>
       val c = Color(0, math.round(e.x * 255d).toInt, 0)
       me.style.backgroundColor = c.toHex
@@ -36,6 +36,22 @@ class Cursor extends FinalComponent[Div] with CursorParam {
       val c = Color(0, 0, math.round(e.x * 255d).toInt)
       me.style.backgroundColor = c.toHex
       c
+  }
+
+  def setColor(co: Color, RGB: RGB): Unit = {
+    val fact : Double = RGB match {
+      case bon.jo.phy.view.RGB.R => me.style.backgroundColor = (co * Color(1, 0, 0)).toHex;(co * Color(1, 0, 0)).r/255d
+      case bon.jo.phy.view.RGB.G => me.style.backgroundColor = (co * Color(0, 1, 0)).toHex;(co * Color(0, 1, 0)).g/255d
+      case bon.jo.phy.view.RGB.B => me.style.backgroundColor = (co * Color(0, 0, 1)).toHex;(co * Color(0, 0, 1)).b/255d
+    }
+    val c: Div = $[Div](id + "-cursor")
+    val size = P(c.getBoundingClientRect().right - c.getBoundingClientRect().left, c.getBoundingClientRect().bottom - c.getBoundingClientRect().top)
+    val sizeCont = P(me.getBoundingClientRect().right - me.getBoundingClientRect().left, me.getBoundingClientRect().bottom - me.getBoundingClientRect().top)
+    val clk = P(fact*sizeCont.x, fact*sizeCont.y) - P(me.getBoundingClientRect().left, me.getBoundingClientRect().top)
+    val center = clk
+    if (!_noYDelta) c.style.top = center.y + "px"
+    if (!_noXDelta) c.style.left = center.x + "px"
+
   }
 
 
@@ -58,7 +74,7 @@ class Cursor extends FinalComponent[Div] with CursorParam {
   }
 
 
-  def update(e : MouseEvent): Unit = {
+  def update(e: MouseEvent): Unit = {
     val c: Div = $[Div](id + "-cursor")
     val size = P(c.getBoundingClientRect().right - c.getBoundingClientRect().left, c.getBoundingClientRect().bottom - c.getBoundingClientRect().top)
     val sizeCont = P(me.getBoundingClientRect().right - me.getBoundingClientRect().left, me.getBoundingClientRect().bottom - me.getBoundingClientRect().top)
@@ -68,13 +84,14 @@ class Cursor extends FinalComponent[Div] with CursorParam {
     if (!_noXDelta) c.style.left = center.x + "px"
     newNormalizedValue.newValue(P(clk.x / sizeCont.x, clk.y / sizeCont.y))
   }
+
   override def init(parent: HTMLElement): Unit = {
 
-  //  me.clkOnce().suscribe(update)
-    me.addEventListener("drag",update)
-    me.addEventListener("dragend",update)
-    me.addEventListener("dragstart",update)
-    me.addEventListener("click",update)
+    //  me.clkOnce().suscribe(update)
+    me.addEventListener("drag", update)
+    me.addEventListener("dragend", update)
+    me.addEventListener("dragstart", update)
+    me.addEventListener("click", update)
   }
 
   override val id: String = {
@@ -96,4 +113,16 @@ object Cursor {
   def yCursor: Cursor = {
     (new Cursor).noXDelta
   }
+}
+
+sealed trait RGB
+
+object RGB {
+
+  case object R extends RGB
+
+  case object G extends RGB
+
+  case object B extends RGB
+
 }

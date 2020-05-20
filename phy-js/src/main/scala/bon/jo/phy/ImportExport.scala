@@ -32,7 +32,7 @@ object ImportExport {
       Some(new PointDynamicColorCircle(exp.m, PointExport.unapply[P](exp.pIni).get
         , PointExport.unapply[V](exp.vIni).get
         , PointExport.unapply[A](exp.aIni).get
-        , Color(exp.color), Shape.Circle(exp.shape.r)
+        , Color(exp.color), Shape.Circle(exp.shape.r),exp.id
       ))
     }
 
@@ -44,6 +44,7 @@ object ImportExport {
         aIni = PointExport(p.a),
         color = p.colorIni.toHex,
         shape = ShapeCercleExport(p.shapeIni.r),
+        id = p.id
       ).asInstanceOf[PDExport]
     }
   }
@@ -78,6 +79,7 @@ object ImportExport {
     val aIni: PointExport = js.native
     val color: String = js.native
     val shape: ShapeCercleExport = js.native
+    val id : Int
   }
 
   @js.native

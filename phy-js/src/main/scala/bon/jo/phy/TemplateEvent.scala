@@ -104,7 +104,7 @@ trait TemplateEvent extends TemplatePhy {
       ev.selectionUpdateUiToCtrl.newValue(interactionSelection)
     })
     val colrElement = $[Div]("selected-color")
-    val cChoose = new ColorChooser
+    val cChoose = new ColorChooser(selected.p.c)
     colrElement.clkOnce().suscribe(_ => {
       if (!cChoose.isInDom) {
         colrElement.addChild(cChoose.xml())
@@ -142,7 +142,7 @@ trait TemplateEvent extends TemplatePhy {
       ev.selectionUpdateUiToCtrl.newValue(planeteSelection)
     })
     val colrElement = $[Div]("selected-color")
-    val cChoose = new ColorChooser
+    val cChoose = new ColorChooser(selected.c)
     colrElement.clkOnce().suscribe(_ => {
       if (!cChoose.isInDom) {
         colrElement.addChild(cChoose.xml())
@@ -362,11 +362,13 @@ trait TemplateEvent extends TemplatePhy {
       implicit val s: Double = sizeFactor
       clickBehavhoir match {
         case (Purpose.Void, Purpose.Void) =>
+          Logger.log("Void void")
           eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicImpl(other), purpose = Purpose.Find, Purpose.All))
         case (Purpose.Move, somthong) =>
+          Logger.log("Purpose.Move, somthong")
           somthong match {
             case Purpose.Void =>
-            case _ => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Move, somthong))
+            case _ => eventsHandler.action.newValue(ActionPointDynamicNoParam(new PointDynamicColorCircle(newElemtsMasse, other, V(), A(), colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f),-1), Purpose.Move, somthong))
           }
         case (Purpose.Create, what) =>
           what match {
@@ -374,11 +376,11 @@ trait TemplateEvent extends TemplatePhy {
             case What.Point =>
               eventsHandler.action.newValue(ActionPointDynamicNoParam(
                 new PointDynamicColorCircle(newElemtsMasse, other, V(), A(),
-                  colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what))
+                  colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f),PointDynamicImpl.createId), Purpose.Create, what))
             case What.Interaction =>
               eventsHandler.action.newValue(ActionPointDynamicParam(
                 new PointDynamicColorCircle(newElemtsMasse, other, V(), A(),
-                  colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f)), Purpose.Create, what,
+                  colorChooser.sommeColr.getOrElse(Color.Red), Circle(20f),PointDynamicImpl.createId), Purpose.Create, what,
                 Some((creationInteractionElm, creationForceOppose))))
           }
         case noWay@_ => Logger.log(s"Différent de Void Void !!!: $noWay")
@@ -427,9 +429,18 @@ trait TemplateEvent extends TemplatePhy {
         addDownloadLinlk(JSON.stringify(e))
     }
 
-    eventsHandler.selectionCtrlToUi.suscribe { _ =>
+    eventsHandler.selectionCtrlToUi.suscribe { sel =>
 
-
+      val a = sel match {
+        case inte@InteractionSelectionCust(Some(selected)) =>
+          currentSelectionWhat = What.Interaction
+          updateInfoInteraction(selected, inte.asInstanceOf[UI.modelInterSel])
+        case NoneSelection => None
+        case pl@PlaneteSelectionCust(Some(selected)) =>
+          currentSelectionWhat = What.Point
+          updateInfoPlanete(selected, pl.asInstanceOf[UI.planeteInterSel])
+        case _ => None
+      }
     }
     eventsHandler.viewPort.suscribe {
       case EmittedValue(_, Source.UI) =>

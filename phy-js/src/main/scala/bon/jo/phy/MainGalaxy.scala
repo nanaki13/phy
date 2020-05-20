@@ -122,15 +122,17 @@ object MainGalaxy extends App {
 
   def stopCamera(UI: UI): Unit = UI.camera = stopCamera(UI.camera)
 
-  def getPointSelection[A <: PointDynamic with WithId, B <: PointInteraction[A]]: Option[A] = selectedIndexPlanete match {
-    case selection: PlaneteSelection[_] => selection.selected.asInstanceOf[Option[A]]
-    case selection: InteractionSelection[_, _] => selection.selected.map(_.p).asInstanceOf[Option[A]]
-    case NoneSelection => None
-    case _ => None
+  def getPointSelection
+  [A <: PointDynamicColor[_], B <: PointInteraction[A]](implicit model: Model[A]): Option[A] = selectedIndexPlanete match {
+    case selection: PlaneteSelection[_] => selection.selected.flatMap(e => model.points.find(_.id == e.id))
+    case selection: InteractionSelection[_, _] => selection.selected.flatMap(e => model.interactions.find(_.id == e.id).map(_.p))
+    case NoneSelection => Logger.log("NoneSelection"); None
+    case a@_ => Logger.log(s"$a"); None
   }
 
   def linkAction(implicit calculateur: Calculateur[PointDynamicColorCircle], ui: UI, uIParams: UIParams, ctx: CanvasRenderingContext2D, eventContext: EventContext[ModelExport, ExportedElement], model: Model[PointDynamicColorCircle]): EventContext[ModelExport, ExportedElement] = {
     implicit val s: Double = uIParams.sizeFactor
+    implicit val modelP: Model[PointDynamicColor[_]] = model.asInstanceOf[Model[PointDynamicColor[_]]]
     eventContext.action.suscribe {
       case ActionPointDynamicParam(pdy: PointDynamic, Purpose.Create, Purpose.What.Interaction, Some((int: Interaction, forceType: What.Interaction.Type))) =>
         pdy match {
@@ -158,12 +160,17 @@ object MainGalaxy extends App {
         }
       case ActionPointDynamicNoParam(pdy: PointDynamic, Purpose.Move, what: What) =>
         what match {
-          case Purpose.Void =>
-          case _ => getPointSelection[PointDynamic with WithId,PointInteraction[PointDynamic with WithId]].foreach(a =>a.p = pdy.p)
+          case Purpose.Void => Logger.log("what  match Void")
+          case _ => getPointSelection[PointDynamicColor[_], PointInteraction[PointDynamicColor[_]]].map(e => {
+            println(e); e
+          }).foreach(a => a.p = pdy.p)
         }
       case ActionPointDynamicNoParam(p: PointDynamic, Purpose.Find, _) =>
 
-        findModelObject(p).foreach(eventContext.selectionCtrlToUi.newValue)
+        findModelObject(p).map(e => {
+          selectedIndexPlanete = e
+          e
+        }).foreach(eventContext.selectionCtrlToUi.newValue)
 
       case a@_ => Logger.log(s"not handle action : $a, select by default")
     }
@@ -202,16 +209,16 @@ object MainGalaxy extends App {
               => InteractionSelectionCust.apply(selection.selected
                 .flatMap { e =>
                   model.interactions.find(el => e.p.id == el.p.id)
-                    .map(finded => finded.copy(p = new PointDynamicColorCircle( finded.p)))
+                    .map(finded => finded.copy(p = new PointDynamicColorCircle(finded.p)))
                 })
               case NoneSelection => NoneSelection
               case _: PlaneteSelection[_] => NoneSelection
               case _ => NoneSelection
             }
         }
+        selectedIndexPlanete = newSelection
         eventContext.selectionCtrlToUi.newValue(newSelection)
 
-        selectedIndexPlanete = newSelection
 
     }
 
@@ -253,7 +260,10 @@ object MainGalaxy extends App {
           }
         }
       case NoneSelection =>
-      case PlaneteSelectionCust(Some(_)) =>
+      case PlaneteSelectionCust(Some(selected)) =>
+        model.points.find(_.id == selected.id).foreach { mod =>
+          modify(mod, selected)
+        }
       case _ =>
     }
 
@@ -286,7 +296,7 @@ object MainGalaxy extends App {
         if selectedIndexPlanete != NoneSelection =>
         stopCamera(ui)
       case Purpose.Follow =>
-        getPointSelection.foreach(ui.follow)
+        getPointSelection[PointDynamicColor[_], PointInteraction[PointDynamicColor[_]]].foreach(e => ui.follow(e))
       case _ =>
     }
     eventContext.saveModel.suscribe { _ =>
@@ -367,7 +377,7 @@ object MainGalaxy extends App {
     // val vy = 0
     //    val vx = 0
     val m = 700 + 600 * Random.nextDouble()
-    new PointDynamicColorCircle(m, P(px, py), V(vx, vy), A(), Color(rdInt(255), rdInt(255), rdInt(255)), Circle(m * 0.01))
+    new PointDynamicColorCircle(m, P(px, py), V(vx, vy), A(), Color(rdInt(255), rdInt(255), rdInt(255)), Circle(m * 0.01), PointDynamicImpl.createId)
   }
 
 

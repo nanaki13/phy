@@ -10,6 +10,7 @@ import bon.jo.phy.EventContext._
 import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
 import bon.jo.phy.Purpose.DontFollow
 import bon.jo.phy.view.{Cursor, UIParams}
+import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html.{Canvas, Div, Select, Option => OptHtml}
 import org.scalajs.dom.raw.HTMLElement
 
@@ -29,8 +30,8 @@ trait TemplatePhy {
   val params: UIParams
 
   import params._
-  var switchIneraction: List[Interaction]= List( Interaction.Atomique,Interaction.Faible, Interaction.Forte,Interaction.Ressort)
-  val colorChooser = new ColorChooser
+  var switchIneraction: List[Interaction]= List( Interaction.Faible, Interaction.Forte,Interaction.Ressort)
+  val colorChooser = new ColorChooser(Color.Magenta)
   val selection: Grid[String] = Grid[String]("selectino-cont", Grid.withLegend, "Sélection")
   val noneChoixString = "-"
   val NoneChoix: InDom[OptHtml] with XmlHtmlView[OptHtml] = optFromStringValue(noneChoixString)
