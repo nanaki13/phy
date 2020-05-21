@@ -2,26 +2,24 @@ package bon.jo.phy
 
 import java.util.UUID
 
-import bon.jo.html.DomShell.$
+import bon.jo.html.DomShell.{$, ExtendedElement}
 import bon.jo.html.Types.FinalComponent
 import bon.jo.html.cpnt.ReadImportFile
 import bon.jo.html.{InDom, XmlHtmlView}
 import bon.jo.phy.EventContext._
+import bon.jo.phy.Grid.GridPrams
 import bon.jo.phy.ImportExport.{ExportedElement, ModelExport}
-import bon.jo.phy.Purpose.DontFollow
-import bon.jo.phy.view.{Cursor, UIParams}
+import bon.jo.phy.view.UIParams
 import org.scalajs.dom.ext.Color
 import org.scalajs.dom.html.{Canvas, Div, Select, Option => OptHtml}
 import org.scalajs.dom.raw.HTMLElement
 
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.scalajs.js
 import scala.xml._
 
 
-trait AutoId{
-  val id :String = UUID.randomUUID().toString
+trait AutoId {
+  val id: String = UUID.randomUUID().toString
 }
 
 trait TemplatePhy {
@@ -30,24 +28,27 @@ trait TemplatePhy {
   val params: UIParams
 
   import params._
-  var switchIneraction: List[Interaction]= List( Interaction.Faible, Interaction.Forte,Interaction.Ressort)
+
+  var switchIneraction: List[Interaction] = List(Interaction.Faible, Interaction.Forte, Interaction.Ressort)
   val colorChooser = new ColorChooser(Color.Magenta)
   val selection: Grid[String] = Grid[String]("selectino-cont", Grid.withLegend, "Sélection")
   val noneChoixString = "-"
   val NoneChoix: InDom[OptHtml] with XmlHtmlView[OptHtml] = optFromStringValue(noneChoixString)
   var creationInteractionElm: Interaction = switchIneraction.head
+
   def optFromStringValue(i: Any): InDom[OptHtml] with XmlHtmlView[OptHtml] = InDom[OptHtml](<option value={i.toString}>
     {i.toString}
   </option>)
 
   @inline
-  def trueFalse[A](trueValue : A, falseVale : A, boolean: Boolean): A = if (boolean) trueValue else falseVale
+  def trueFalse[A](trueValue: A, falseVale: A, boolean: Boolean): A = if (boolean) trueValue else falseVale
 
   def display(value: UIParams): Unit = {
     timeup.me.innerText = value.scaleTime.toString
     sizeFactorInput.me.innerText = value.sizeFactor.toString
-    correctionInput.me.innerText = trueFalse("Oui","Non",value.correction)
+    correctionInput.me.innerText = trueFalse("Oui", "Non", value.correction)
   }
+
   def setUpHtml(): Unit = {
 
     val crCont = Grid[String]("creation", Grid.withLegend, "Création")
@@ -57,7 +58,7 @@ trait TemplatePhy {
     tmpGrid.cellByRaw = 2
     tmpGrid :+ bagName("masse : ", newElementMassseHtml.xml()) :+ bagName("interaction:", <div>
       {interactionType.xml()}{interactionSelectionOppose.xml()}
-    </div>) :+  bagName("Color : ", colorChooser)
+    </div>) :+ bagName("Color : ", colorChooser)
 
     crCont :+ tmpGrid
 
@@ -114,17 +115,17 @@ trait TemplatePhy {
 
   }
 
-  protected lazy val movable: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
-    <div id="dyn-1" class="position-absolute mv">
-      Je Dois bouger
-    </div>
-  })
+//  protected lazy val movable: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
+//    <div id="dyn-1" class="position-absolute mv">
+//      Je Dois bouger
+//    </div>
+//  })
   protected lazy val stabilise: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="applyEnergyEqual" class="col in">
       Stabilise
     </div>
   })
-  protected lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={viewPort.w.x.toString} height={viewPort.h.y.toString}></canvas>)
+  lazy val canvas: XmlHtmlView[Canvas] = InDom[Canvas](<canvas style="position:absolute;top:0;z-index:0;" id="gameCanvas" width={viewPort.w.x.toString} height={viewPort.h.y.toString}></canvas>)
 
   protected lazy val newElementMassseHtml: InDom[Div] with XmlHtmlView[Div] = InDom[Div]({
     <div id="in" class="in col">
@@ -225,12 +226,15 @@ trait TemplatePhy {
     </div>
   })
 
-  def initalSelPupose = List(Purpose.Delete,Purpose.Follow,Purpose.DontFollow,Purpose.Move)
+  def initalSelPupose = List(Purpose.Delete, Purpose.Follow, Purpose.DontFollow, Purpose.Move)
+
   def optionHtml: List[Elem] = initalSelPupose.map(e => {
     <option value={e.toString}>
-      {e.name}</option>
+      {e.name}
+    </option>
 
   })
+
   protected lazy val planeteAction: InDom[Div] with XmlHtmlView[Div] = InDom[Div](
     <div id="planeteAction">
       <select id="planeteAction-select">
@@ -247,7 +251,7 @@ trait TemplatePhy {
   protected lazy val chioceInteraction: InDom[Div] with XmlHtmlView[Div] = doSelectHtml("interaction-div-sel", "inter-sel")
   protected lazy val interactionSelection: Select = $[Select]("inter-sel")
 
-  protected lazy val  importExample: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="importExample" class ="in">charger un exemple</div>)
+  protected lazy val importExample: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="importExample" class="in">charger un exemple</div>)
 
   implicit val cv: js.Any => ExportedElement = { e =>
     ModelExport.unnaply(e.asInstanceOf[ModelExport]).get
@@ -279,145 +283,45 @@ trait TemplatePhy {
     </div>)
 
 
-  object Grid {
-
-    sealed trait Mode[A] {
-      def apply(node: Elem, param: A): Node
-    }
-
-    object withLegend extends Mode[String] {
-      override def apply(node: Elem, legend: String): Node = {
-        node.copy(child = <div class="border rounded m-1 p-1">
-          <span class="legend">
-            {legend}
-          </span>{node.child}
-        </div>)
+  trait CtxMessageView extends FinalComponent[Div] {
+    private var _message: String = ""
+     var close: Obs[_] = _
+     var closeMessage : String = _
+    def message_=(m: String): Unit = {
+      _message = m
+      if (isInDom) {
+        $[Div](id + "-m").innerText = m
+        clHtml.style.display = "inline"
       }
     }
 
-    object noMode extends Mode[Null] {
-      override def apply(node: Elem, legend: Null): Node = node
+    def message: String = _message
+    def clHtml: Div = $[Div](id + "-c")
+    override def xml(): Node = <div id={id} class="in ctx-message">
+      <div class="container message" >
+        <span id={id + "-m"}>{_message}</span><button   id={id + "-c"} type="button" class="close" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      </div>
+
+    </div>
+
+    override def init(parent: HTMLElement): Unit = {
+
+      close = clHtml.clkOnce().toMany
+      close.suscribe(_ => {
+        message = closeMessage
+        clHtml.style.display = "none"
+      })
     }
 
-    def apply(id: String): Grid[Null] = () => GridPrams(noMode, id, null)
-
-    def apply[A](id: String, mode: Mode[A], param: A): Grid[A] = () => GridPrams(mode, id, param)
+    override def id: String = "ctx-message"
   }
 
-  case class GridPrams[A](mode: Grid.Mode[A], id: String, modeParam: A)
+  object ctxMessage extends CtxMessageView
 
-
-  def appendToAttribute(n: Elem, nameAtrr: String, vale: String): Elem = {
-    updateAtttibute(n, nameAtrr, (n \@ nameAtrr) + vale)
-  }
-
-  def appendTokeyOrCreate(n: Elem, nameAtrr: String, vale: String, sep: Char = ' '): Elem = {
-    if (n.attribute(nameAtrr).isDefined && (n \@ nameAtrr).contains(vale)) {
-
-      updateAtttibute(n, nameAtrr, (n \@ nameAtrr) + sep + vale)
-    } else {
-
-      if (n.attribute(nameAtrr).isDefined) {
-        n.copy(attributes = n.attributes.map(e => {
-          if (e.key == nameAtrr) {
-            atrTail(nameAtrr, vale, e.next)
-          } else {
-            e
-          }
-        }).toList.head)
-      }
-      else {
-        n.copy(attributes = MetaData.concatenate(n.attributes, atrTail(nameAtrr, vale, scala.xml.Null))
-        )
-      }
-    }
-  }
-
-
-  def atrTail(name: String, valeur: String, n: MetaData) = new UnprefixedAttribute(name, valeur, n)
-
-  def updateAtttibute(n: Elem, nameAtrr: String, vale: String): Elem = {
-    val nMeta = n.attributes.map {
-
-      case Null => Null
-      case attribute: PrefixedAttribute if attribute.key == nameAtrr => new PrefixedAttribute(attribute.pre, attribute.key, vale, attribute.next)
-      case attribute: PrefixedAttribute => attribute
-      case attribute: UnprefixedAttribute if attribute.key == nameAtrr => new UnprefixedAttribute(attribute.key, vale, attribute.next);
-      case attribute: UnprefixedAttribute => attribute
-      case attribute: Attribute => attribute
-
-    }.foldLeft(Agg(None))((a, b) => {
-      a :+ b
-    })
-
-    val aa = nMeta.tail match {
-      case Some(value) => value
-      case None => n.attributes
-
-    }
-
-    n.copy(attributes = aa)
-  }
-
-  case class Agg(var tail: Option[MetaData]) {
-
-    def :+(a: MetaData): Agg = {
-      if (tail.isDefined) {
-
-        tail = tail.map(_.copy(a))
-      } else {
-        tail = Some(a)
-      }
-      this
-    }
-  }
-
-  trait Grid[A] extends FinalComponent[Div] with (() => GridPrams[A]) {
-
-    val GridPrams(mode, id, param): GridPrams[A] = apply()
-
-
-    var cellByRaw = 5
-    var current = 1
-
-    def addCell(n: Elem): Grid[A] = {
-      def reworked = appendTokeyOrCreate(n, "class", "col")
-
-
-      table.head += reworked
-      current += 1
-      if (current > cellByRaw) {
-        current = 1
-        table = ListBuffer[Node]() :: table
-      }
-      this
-    }
-
-    def :+(n: Elem): Grid[A] = addCell(n)
-
-    def :+(n: Node): Grid[A] = addCell(n.asInstanceOf[Elem])
-
-    def :+(n: XmlHtmlView[_]): Grid[A] = addCell(n.xml().asInstanceOf[Elem])
-    def :+(n: NodeBuffer): Grid[A] = addCell(<div>{Group(n)}</div>)
-
-    var table: List[mutable.ListBuffer[Node]] = ListBuffer[Node]() :: Nil
-
-    override def xml(): Node = {
-      def rows: List[Elem] = for {r <- table.reverse} yield {
-        <div class="row">
-          {Group(r)}
-        </div>
-      }
-
-      mode(<div id={id}>
-        {Group(rows)}
-      </div>, param)
-    }
-
-
-    override def init(parent: HTMLElement): Unit = {}
-  }
-
+  ctxMessage.message = "Salut"
+  ctxMessage.closeMessage = "--"
   type SimpleGrid = Grid[Null]
 
   private object mainBag extends SimpleGrid {
@@ -425,6 +329,11 @@ trait TemplatePhy {
   }
 
   def root: InDom[Div] with XmlHtmlView[Div] = InDom[Div](<div id="root">
-    {mainBag.xml()}{movable.xml()}
+    {mainBag.xml()}{ctxMessage.xml()}
   </div>)
+  //{movable.xml()}
 }
+
+
+
+

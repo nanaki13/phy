@@ -51,6 +51,7 @@ class ColorChooser(initialColor: Color) extends FinalComponent[Div] with AutoId 
     colorObs.suscribe(v => {
       cursorRed.me.parentElement.style.backgroundColor = v.toHex
     })
+    sommeColr = Some(initialColor)
   }
 
 

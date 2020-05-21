@@ -49,8 +49,8 @@ class Cursor extends FinalComponent[Div] with CursorParam {
     val sizeCont = P(me.getBoundingClientRect().right - me.getBoundingClientRect().left, me.getBoundingClientRect().bottom - me.getBoundingClientRect().top)
     val clk = P(fact*sizeCont.x, fact*sizeCont.y) - P(me.getBoundingClientRect().left, me.getBoundingClientRect().top)
     val center = clk
-    if (!_noYDelta) c.style.top = center.y + "px"
-    if (!_noXDelta) c.style.left = center.x + "px"
+    if (!_noYDelta) c.style.top = (center.y+me.getBoundingClientRect().top - size.y/2) + "px"
+    if (!_noXDelta) c.style.left = (center.x+me.getBoundingClientRect().left - size.x/2) + "px"
 
   }
 

@@ -26,14 +26,14 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
   def clearIfNoKeepTail(implicit canvasRenderingContext2D: CanvasRenderingContext2D): Unit = if (!uIParams.tracer) clear
 
   def removeAnimable(): Unit = {
-    movable.removeFromView()
+//    movable.removeFromView()
   }
 
   def newPositionModel(): Unit = {
     val P(x, y, _): P = positionDybCala.model.points.head.p
 
-    movable.me.style.top = y.toInt.toString + "px"
-    movable.me.style.left = x.toInt.toString + "px"
+//    movable.me.style.top = y.toInt.toString + "px"
+//    movable.me.style.left = x.toInt.toString + "px"
 
   }
 
@@ -211,13 +211,9 @@ case class UI()(implicit uIParams: UIParams) extends TemplatePhy with TemplateEv
   }
 
   def clkToVoid(): Unit = {
-    clickBehavhoir match {
-      case (Purpose.Create, What.Point) => createPoint.me.innerText = "Créer planète"
-      case (Purpose.Create, What.Interaction) => createInteraction.me.innerText = "Créer interaction"
-      case _ =>
-    }
-    clickBehavhoir = (Purpose.Void, Purpose.Void)
 
+    clickBehavhoir = (Purpose.Void, Purpose.Void)
+    ctxMessage.message = "--"
   }
 
   def dh: Double = -viewPort.h.y / 4d

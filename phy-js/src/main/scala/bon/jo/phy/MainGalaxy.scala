@@ -162,7 +162,7 @@ object MainGalaxy extends App {
         what match {
           case Purpose.Void => Logger.log("what  match Void")
           case _ => getPointSelection[PointDynamicColor[_], PointInteraction[PointDynamicColor[_]]].map(e => {
-            println(e); e
+            println(e);e.mask; e
           }).foreach(a => a.p = pdy.p)
         }
       case ActionPointDynamicNoParam(p: PointDynamic, Purpose.Find, _) =>
@@ -330,10 +330,18 @@ object MainGalaxy extends App {
   var selectedIndexPlanete: Selection[_] = NoneSelection
   var viewPort: ViewPort = _
 
+  def getRes: V = {
+    import org.scalajs.dom.window
+    Logger.log( window.devicePixelRatio)
+    V(window.innerWidth , window.innerHeight)
+  }
 
   def go(): Unit = {
 
     implicit val uiParams: UIParams = UIParams()
+    val res = getRes
+    Logger.log(res)
+    uiParams.viewPort =  uiParams.viewPort.copy(w=res,h=res)
     implicit val ui: UI = UI()
     implicit val eventContext: EventContext[ModelExport, ExportedElement] = EventContext[ModelExport, ExportedElement]()
     implicit val ctx: CanvasRenderingContext2D = ui.getCtx2D
@@ -342,7 +350,7 @@ object MainGalaxy extends App {
 
     ui.initView()
 
-
+    ui.canvas.me.parentElement.style.width= res.x+"px"
     implicit val m: Model[PointDynamicColorCircle] = Model[PointDynamicColorCircle](Nil, Nil)
     implicit val calculParam: CalculParam = CalculParam(uiParams)
 

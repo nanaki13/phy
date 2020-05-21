@@ -14,7 +14,7 @@ trait Obs[A] {
   def newValue(a: A): Unit
 
   def clearClients(): Unit
-
+  def toMany : Obs[A] 
   def map[B](f: A => B): Obs[B] = {
     val newOne = Obs.once[B]()
     this.suscribe(a => newOne.newValue(f(a)))

@@ -162,6 +162,11 @@ trait TemplateEvent extends TemplatePhy {
     setUpHtml()
 
     org.scalajs.dom.document.body.appendChild(root.html())
+    ctxMessage.init(root.me)
+
+    ctxMessage.close.suscribe(e => {
+      clickBehavhoir = (Purpose.Void,Purpose.Void)
+    })
     val unserInput = newElementMassseHtml.me.UserCanUpdate()
 
     unserInput.suscribe(e => {
@@ -189,11 +194,11 @@ trait TemplateEvent extends TemplatePhy {
     }
     createPoint.me.clkOnce().suscribe(_ => {
       clickBehavhoir = (Purpose.Create, Purpose.What.Point)
-      createPoint.me.innerText = "Clicker où mettre"
+      ctxMessage.message = "Clicker où mettre la planète"
     })
     createInteraction.me.clkOnce().suscribe(_ => {
       clickBehavhoir = (Purpose.Create, Purpose.What.Interaction)
-      createInteraction.me.innerText = "Clicker où mettre"
+      ctxMessage.message = "Clicker où mettre l'interaction"
     })
     val tUpUpdate = timeup.me.UserCanUpdate()
 
@@ -288,10 +293,10 @@ trait TemplateEvent extends TemplatePhy {
       selectedPurpose = Purpose(planeteActionRef.value)
       if (selectedPurpose == Move) {
         clickBehavhoir = (Purpose.Move, currentSelectionWhat)
-        planeteActionSubmit.innerText = "Clicker sur la destination"
+        ctxMessage.message = "Clicker sur la destination"
       } else {
         clickBehavhoir = (Purpose.Void, currentSelectionWhat)
-        planeteActionSubmit.innerText = "Appliquer"
+        ctxMessage.message = "--"
       }
 
     })
@@ -355,6 +360,8 @@ trait TemplateEvent extends TemplatePhy {
       val x = e.clientX
       val y = -e.clientY
       val clickIn = pc + P(x, y)
+
+
       val other = clickIn / viewPort.scale + viewPort.leftBottm
 
 
