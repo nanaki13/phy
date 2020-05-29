@@ -14,7 +14,7 @@ import bon.jo.phy.Phy.P
 import bon.jo.phy.view.Cursor.CursorParam
 import org.scalajs.dom.ext.Color
 
-import scala.xml.Node
+import scala.xml.{Elem, Node}
 
 class Cursor extends FinalComponent[Div] with CursorParam {
   def bindBackgroundRed(): Obs[Color] = newNormalizedValue.map {
@@ -67,7 +67,7 @@ class Cursor extends FinalComponent[Div] with CursorParam {
 
   val newNormalizedValue: Obs[P] = Obs.once()
 
-  override def xml(): Node = {
+  override def xml(): Elem = {
     <div id={id} class="cursor">
       <div id={id + "-cursor"} class="the-cursor d-inline">X</div>
     </div>

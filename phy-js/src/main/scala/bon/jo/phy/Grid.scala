@@ -41,7 +41,7 @@ trait Grid[A] extends FinalComponent[Div] with (() => GridPrams[A]) {
 
   var table: List[mutable.ListBuffer[Node]] = ListBuffer[Node]() :: Nil
 
-  override def xml(): Node = {
+  override def xml(): Elem = {
     def rows: List[Elem] = for {r <- table.reverse} yield {
       <div class="row">
         {Group(r)}
@@ -60,11 +60,11 @@ trait Grid[A] extends FinalComponent[Div] with (() => GridPrams[A]) {
 object Grid {
   case class GridPrams[A](mode: Grid.Mode[A], id: String, modeParam: A)
   sealed trait Mode[A] {
-    def apply(node: Elem, param: A): Node
+    def apply(node: Elem, param: A): Elem
   }
 
   object withLegend extends Mode[String] {
-    override def apply(node: Elem, legend: String): Node = {
+    override def apply(node: Elem, legend: String): Elem = {
       node.copy(child = <div class="border rounded m-1 p-1">
         <span class="legend">
           {legend}
@@ -74,7 +74,7 @@ object Grid {
   }
 
   object noMode extends Mode[Null] {
-    override def apply(node: Elem, legend: Null): Node = node
+    override def apply(node: Elem, legend: Null): Elem = node
   }
 
   def apply(id: String): Grid[Null] = () => GridPrams(noMode, id, null)

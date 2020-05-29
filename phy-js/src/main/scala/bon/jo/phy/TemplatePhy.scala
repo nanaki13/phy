@@ -297,7 +297,7 @@ trait TemplatePhy {
 
     def message: String = _message
     def clHtml: Div = $[Div](id + "-c")
-    override def xml(): Node = <div id={id} class="in ctx-message">
+    override def xml(): Elem = <div id={id} class="in ctx-message">
       <div class="container message" >
         <span id={id + "-m"}>{_message}</span><button   id={id + "-c"} type="button" class="close" aria-label="Close">
         <span aria-hidden="true">&times;</span>
