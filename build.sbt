@@ -7,7 +7,7 @@ import scala.sys.process._
 enablePlugins(ScalaJSPlugin)
 val sharedSettings = Seq(version := "0.1.1-SNAPSHOT",
   organization := "bon.jo",
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.4",
   libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.1" % "test"
 )
 name := "phy"
@@ -23,14 +23,6 @@ lazy val `phy-shared` =
 // configure Scala-Native settings
 // .nativeSettings(/* ... */) // defined in sbt-scala-native
 
-lazy val `phy-jvm` =
-// select supported platforms
-  crossProject(JVMPlatform)
-    .crossType(CrossType.Pure) // [Pure, Full, Dummy], default: CrossType.Full
-    .settings(sharedSettings)
-    .settings(libraryDependencies ++= Seq(  "org.xerial" % "sqlite-jdbc" % "3.21.0"))
-
-   .dependsOn(`phy-shared`)
 lazy val `phy-js` =
 // select supported platforms
   crossProject(JSPlatform)
