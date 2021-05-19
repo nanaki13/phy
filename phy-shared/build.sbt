@@ -5,10 +5,11 @@ import scala.sys.process._
 
 
 
-val sharedSettings = Seq(version := "0.1.1-SNAPSHOT",
+val sharedSettings = Seq(version := "0.1.2-SNAPSHOT",
   organization := "bon.jo",
-  scalaVersion := "2.13.1",
-  libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.1" % "test"
+  scalaVersion := "2.13.5",
+  libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.1" % "test",
+    scalacOptions ++= Seq("-deprecation", "-feature")
 )
 
 // or any other Scala version >= 2.11.12

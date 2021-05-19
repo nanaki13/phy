@@ -78,14 +78,14 @@ object Phy {
 
 
   case class P(x : Double= 0, y : Double= 0,t : Double = 0) extends XYT[P]{
-    def this(p : _XYT){
+    def this(p : _XYT)={
       this(p.x,p.y,p.t)
     }
   }
 
   //case class F(x : Double, y : Double,t : Double) extends XY
   case class V(x : Double =0, y : Double= 0,t : Double = 0) extends XYT[V] with dt[P] {
-    def this(p : _XYT){
+    def this(p : _XYT)={
       this(p.x,p.y,p.t)
     }
     override def sum(t: Double): P = P(x*t,y*t)
@@ -94,7 +94,7 @@ object Phy {
   }
   case class A(var x : Double =0,var y : Double =0,t : Double = 0) extends XYT[A] with dt[V] {
 
-    def this(p : _XYT){
+    def this(p : _XYT)={
       this(p.x,p.y,p.t)
     }
 
