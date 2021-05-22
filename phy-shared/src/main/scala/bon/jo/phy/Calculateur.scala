@@ -4,11 +4,11 @@ import bon.jo.phy.Phy.{A, P, V}
 
 import scala.util.Random
 
-case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
+case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]):
   val `2PI`: Double = math.Pi * 2
 
 
-  def doFundamentalPrincipleOfDynamics(on: PointDynamic)(implicit calculParam: CalculParam): Unit = {
+  def doFundamentalPrincipleOfDynamics(on: PointDynamic)(implicit calculParam: CalculParam): Unit =
     on.a = A()
     model.interactions.foreach(e => {
       val PointInteraction(source, inter,tp) = e
@@ -18,12 +18,11 @@ case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
 
     })
 
-  }
 
 
   def rds: Seq[PointDynamic] = model.points
 
-  def replaceAround(sun: P, from: Double, step: Double): Unit = {
+  def replaceAround(sun: P, from: Double, step: Double): Unit =
 
 
     rds.zipWithIndex.foreach(planeteIndex => {
@@ -37,7 +36,6 @@ case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
       pl.v = V()
     })
 
-  }
 
   var haveToStab = false
 
@@ -47,11 +45,10 @@ case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
 
   def push(): Unit = rds.foreach(p => p.v = -new V(p.a / p.a.n * p.v.n) * 1.2f)
 
-  def applyV(factorV: Double): Unit = {
+  def applyV(factorV: Double): Unit =
     rds.foreach(p => p.v = p.v * factorV)
-  }
 
-  def turnAroundSun(p: P): Unit = {
+  def turnAroundSun(p: P): Unit =
 
     rds.foreach(e => {
       val vect: V = new V(p - e.p)
@@ -62,19 +59,18 @@ case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
       (e.p.copy(), vi.copy())
     })
 
-  }
 
   implicit val caculContext: CaculContext = CaculContext()
 
   def calculnextPosition(on: PointDynamic,
                          // s: PointDynamic,
-                         calculParam: CalculParam): Unit = {
+                         calculParam: CalculParam): Unit =
     implicit val calculParamp: CalculParam = calculParam
 
 
     doFundamentalPrincipleOfDynamics(on)
 
-    if (haveToStab) {
+    if haveToStab then
       println(on.v.unitary * on.a.unitary)
 
         println("on redresse")
@@ -84,8 +80,5 @@ case class Calculateur[Pt <: PointDynamic with WithId](model: Model[Pt]) {
 
 
 
-    }
     on.addDt(calculParam.dt)
 
-  }
-}

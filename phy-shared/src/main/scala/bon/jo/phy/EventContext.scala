@@ -5,9 +5,8 @@ import bon.jo.phy.Phy.P
 import bon.jo.phy.view.{UIParams, ViewPort}
 
 
-class Selection[A <: WithId](val selected: Option[A]){
+class Selection[A <: WithId](val selected: Option[A]):
   def id: Int = selected.get.id
-}
 
 
 object NoneSelection extends Selection[Nothing](None)
@@ -16,28 +15,25 @@ object NoneSelection extends Selection[Nothing](None)
 //  def apply[A <: PointDynamic](selected: A): PlaneteSelection[A] = PlaneteSelection(Some(selected))
 //}
 
-abstract class PlaneteSelection[A <: PointDynamic with WithId](override val selected: Option[A]) extends Selection[A](selected) {
+abstract class PlaneteSelection[A <: PointDynamic with WithId](override val selected: Option[A]) extends Selection[A](selected):
   def cp(): PlaneteSelection[A]
 
 
-}
 
-abstract class InteractionSelection[P <: PointDynamic with WithId, A <: PointInteraction[P]](override val selected: Option[A]) extends Selection[A](selected) {
+abstract class InteractionSelection[P <: PointDynamic with WithId, A <: PointInteraction[P]](override val selected: Option[A]) extends Selection[A](selected):
   def cp(): InteractionSelection[P,A]
-}
 
 //object  InteractionSelection{
 //  def apply[A <: PointDynamic](selected: PointInteraction[A]): InteractionSelection[A] = InteractionSelection(Some(selected))
 //}
 sealed trait Source
 
-object Source {
+object Source:
 
   case object UI extends Source
 
   case object Ctrl extends Source
 
-}
 
 case class EmittedValue[A](value: A, source: Source)
 

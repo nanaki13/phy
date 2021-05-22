@@ -1,6 +1,5 @@
 package bon.jo.phy
 
-trait WithId{
+trait WithId:
   def id : Int
-}
 

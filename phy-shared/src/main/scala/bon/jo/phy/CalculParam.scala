@@ -1,11 +1,11 @@
 package bon.jo.phy
 
-trait CalculParam extends Param {
+trait CalculParam extends Param :
   var dt = 0d
 
-}
 
-trait Param {
+
+trait Param:
   //def forSun(doThat :  PointDynamic => Unit): Unit = sun foreach doThat
 
   var G :Double
@@ -21,9 +21,8 @@ trait Param {
  // var interaction: Interaction
   var correction: Boolean
 
-}
 object CalculParam {
-  def apply(e: Param):CalculParam = {
+  def apply(e: Param):CalculParam =
     CalcuParamImpl(
 
       e.kRessort,
@@ -34,5 +33,4 @@ object CalculParam {
       e.correction,
       e.G
     )
-  }
 }

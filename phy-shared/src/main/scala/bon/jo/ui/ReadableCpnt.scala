@@ -1,5 +1,4 @@
 package bon.jo.ui
 
-trait ReadableCpnt[A] {
+trait ReadableCpnt[A]:
   def read: A
-}

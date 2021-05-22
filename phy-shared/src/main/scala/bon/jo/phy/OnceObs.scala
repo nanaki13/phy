@@ -1,22 +1,18 @@
 package bon.jo.phy
 
-class OnceObs[A](private var client: A => Unit = null) extends Obs[A] {
-  def clearClients(): Unit = {
+class OnceObs[A](private var client: A => Unit = null) extends Obs[A]:
+  def clearClients(): Unit =
     client = null
-  }
 
   override def suscribe(clientp: A => Unit): Unit = client = clientp
 
-  override def newValue(a: A): Unit = {
-    if (client != null) client(a) else throw new IllegalStateException("no client for observed value  : " + a)
-  }
+  override def newValue(a: A): Unit =
+    if client != null then client(a) else throw new IllegalStateException("no client for observed value  : " + a)
 
-  def toMany: StackObs[A] = {
+  def toMany: StackObs[A] =
     val n = new StackObs[A]()
     suscribe(n.newValue)
     n
-  }
-}
 
 class MemoObs[A] extends StackObs[A] {
 
@@ -25,19 +21,15 @@ class MemoObs[A] extends StackObs[A] {
   def keep(a: A): Unit = keeps = keeps :+ a
 
 
-  override def suscribe(client: A => Unit): Unit = {
-    if (keeps.nonEmpty) {
+  override def suscribe(client: A => Unit): Unit =
+    if keeps.nonEmpty then
       keeps.foreach(client)
-    }
     keeps = Nil
     super.suscribe(client)
-  }
 
-  override def newValue(a: A): Unit = {
-    if (clients.isEmpty) {
+  override def newValue(a: A): Unit =
+    if clients.isEmpty then
       keep(a)
-    } else {
+    else
       super.newValue(a)
-    }
-  }
 }

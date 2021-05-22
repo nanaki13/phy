@@ -4,55 +4,47 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
 
-trait ObsFact[A] {
+trait ObsFact[A]:
   def apply(): Obs[A]
-}
 
-trait Obs[A] {
+trait Obs[A]:
   def suscribe(client: A => Unit): Unit
 
   def newValue(a: A): Unit
 
   def clearClients(): Unit
   def toMany : Obs[A] 
-  def map[B](f: A => B): Obs[B] = {
+  def map[B](f: A => B): Obs[B] =
     val newOne = Obs.once[B]()
     this.suscribe(a => newOne.newValue(f(a)))
     newOne
-  }
 
-  def toFuture(implicit executionContext: ExecutionContext): Future[A] = {
+  def toFuture(implicit executionContext: ExecutionContext): Future[A] =
     val p2 = scala.concurrent.Promise[A]()
     suscribe(p2.success)
     p2.future
-  }
-}
 
 object Obs {
   val alls: mutable.Map[String, Obs[_]] = mutable.Map[String, Obs[_]]()
 
-  def once[A](): OnceObs[A] = {
+  def once[A](): OnceObs[A] =
     val ret = new OnceObs[A]() {}
     ret
-  }
 
 
-  def once[A](client: A => Unit): OnceObs[A] = {
+  def once[A](client: A => Unit): OnceObs[A] =
     val ret = new OnceObs[A](client) {}
     ret
-  }
 
-  def get[A](id: String): Obs[A] = {
+  def get[A](id: String): Obs[A] =
 
     val ret = alls.get(id)
-    if (ret.isEmpty) {
+    if ret.isEmpty then
       val n = new StackObs[A]()
       alls(id) = n
       n
-    } else {
+    else
       ret.get.asInstanceOf[Obs[A]]
-    }
-  }
 
 
 }
