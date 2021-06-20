@@ -2,3 +2,8 @@
 target
 .idea
 assets
+**/.bloop
+**/.metals
+**/.bsp
+**/metals.sbt
+.vscode
